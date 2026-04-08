@@ -1,0 +1,4 @@
+# frozen_string_literal: true
+
+# This dummy app uses the gem's root Gemfile
+eval_gemfile File.expand_path("../../../Gemfile", __dir__)
