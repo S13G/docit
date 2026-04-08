@@ -14,18 +14,13 @@ RSpec.describe "Docit Engine Integration", type: :request do
   end
 
   before do
-    Docit.reset_configuration!
-    Docit.reset_schemas!
+    # Re-apply configuration without clearing the registry controllers are loaded once and won't re-register operations.
     Docit.configure do |config|
       config.title = "Dummy Test API"
       config.version = "1.0.0"
       config.description = "A test API for Docit gem integration tests"
       config.auth :bearer
     end
-
-    # Force-load the controllers so swagger_doc macros run
-    Api::V1::AuthController
-    Api::V1::UsersController
   end
 
   describe "GET /api-docs/spec" do
