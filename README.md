@@ -1,6 +1,6 @@
-# Docket
+# Docit
 
-[![Gem Version](https://badge.fury.io/rb/docket.svg)](https://rubygems.org/gems/docket)
+[![Gem Version](https://badge.fury.io/rb/docit.svg)](https://rubygems.org/gems/docit)
 [![CI](https://github.com/S13G/docket/actions/workflows/ci.yml/badge.svg)](https://github.com/S13G/docket/actions/workflows/ci.yml)
 [![Ruby](https://img.shields.io/badge/ruby-%3E%3D%203.2-red.svg)](https://www.ruby-lang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -11,32 +11,32 @@ Inspired by [drf-spectacular](https://github.com/tfranzel/drf-spectacular) for D
 
 ## Installation
 
-Add Docket to your Gemfile:
+Add Docit to your Gemfile:
 
 ```ruby
-gem "docket"
+gem "docit"
 ```
 
 Then run:
 
 ```bash
 bundle install
-rails generate docket:install
+rails generate docit:install
 ```
 
 The generator does two things:
 
-1. Creates `config/initializers/docket.rb` with default settings
+1. Creates `config/initializers/docit.rb` with default settings
 2. Mounts the Swagger UI engine at `/api-docs` in your routes
 
 Visit `/api-docs` to see your interactive API documentation.
 
 ## Configuration
 
-Edit `config/initializers/docket.rb`:
+Edit `config/initializers/docit.rb`:
 
 ```ruby
-Docket.configure do |config|
+Docit.configure do |config|
   config.title       = "My API"
   config.version     = "1.0.0"
   config.description = "Backend API documentation"
@@ -60,7 +60,7 @@ end
 
 ## Usage
 
-Docket supports two styles for documenting endpoints. Choose whichever fits your project or mix both.
+Docit supports two styles for documenting endpoints. Choose whichever fits your project or mix both.
 
 ### Style 1: Inline (simple APIs)
 
@@ -86,7 +86,7 @@ Keep controllers clean by defining docs in dedicated files, just like drf-specta
 ```ruby
 # app/docs/api/v1/users_docs.rb
 module Api::V1::UsersDocs
-  extend Docket::DocFile
+  extend Docit::DocFile
 
   doc :index do
     summary "List all users"
@@ -303,8 +303,8 @@ end
 Define reusable schemas once and reference them across multiple endpoints:
 
 ```ruby
-# In config/initializers/docket.rb or a dedicated file:
-Docket.define_schema :User do
+# In config/initializers/docit.rb or a dedicated file:
+Docit.define_schema :User do
   property :id,    type: :integer, example: 1
   property :email, type: :string,  example: "user@example.com"
   property :name,  type: :string,  example: "Jane Doe"
@@ -314,7 +314,7 @@ Docket.define_schema :User do
   end
 end
 
-Docket.define_schema :Error do
+Docit.define_schema :Error do
   property :error,   type: :string, example: "Not found"
   property :details, type: :array, items: :string
 end
@@ -377,7 +377,7 @@ end
 ## How it works
 
 1. `swagger_doc` registers an **Operation** for each controller action in a global **Registry**
-2. When someone visits `/api-docs/spec`, Docket's **SchemaGenerator** combines all registered operations with your Rails routes (via **RouteInspector**) to produce an OpenAPI 3.0.3 JSON document
+2. When someone visits `/api-docs/spec`, Docit's **SchemaGenerator** combines all registered operations with your Rails routes (via **RouteInspector**) to produce an OpenAPI 3.0.3 JSON document
 3. The **Engine** serves Swagger UI at `/api-docs`, pointing it at the generated spec
 
 The DSL is included in all controllers automatically via a Rails Engine initializer — no manual `include` needed if you're using `ActionController::API` or `ActionController::Base`.
@@ -387,7 +387,7 @@ The DSL is included in all controllers automatically via a Rails Engine initiali
 In `config/routes.rb`:
 
 ```ruby
-mount Docket::Engine => "/docs"        # now at /docs instead of /api-docs
+mount Docit::Engine => "/docs"        # now at /docs instead of /api-docs
 ```
 
 ## JSON spec only
@@ -402,7 +402,7 @@ GET /api-docs/spec
 
 ```bash
 git clone https://github.com/S13G/docket.git
-cd docket
+cd docit
 bundle install
 bundle exec rspec        # run all tests
 ```

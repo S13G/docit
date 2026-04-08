@@ -3,7 +3,7 @@
 module Api
   module V1
     module AuthDocs
-      extend Docket::DocFile
+      extend Docit::DocFile
 
       doc :register do
         summary "Register a new user"

@@ -3,7 +3,7 @@
 module Api
   module V1
     module UsersDocs
-      extend Docket::DocFile
+      extend Docit::DocFile
 
       doc :index do
         summary "List all users"

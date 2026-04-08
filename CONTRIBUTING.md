@@ -1,6 +1,6 @@
-# Contributing to Docket
+# Contributing to Docit
 
-Docket welcomes any form of contribution. Your contribution matters even if it is only a small one.
+Docit welcomes any form of contribution. Your contribution matters even if it is only a small one.
 
 Contributions come in different shapes and sizes:
 
@@ -18,23 +18,23 @@ Generating OpenAPI schemas from Rails controllers is subtle work — the devil o
 - Example controller code that produces the issue
 - The generated (partial) OpenAPI spec showing the problem
 - Stacktraces if an error occurred
-- Docket / Ruby / Rails versions (`bundle show docket`, `ruby -v`, `rails -v`)
+- Docit / Ruby / Rails versions (`bundle show docit`, `ruby -v`, `rails -v`)
 
 ## Pull requests
 
-Docket aims for high test coverage and an extensive test suite. Tests enable us to maintain quality, reliability, and consistency as the gem grows.
+Docit aims for high test coverage and an extensive test suite. Tests enable us to maintain quality, reliability, and consistency as the gem grows.
 
 - **Keep changes minimal.** Make the smallest invasive change that solves the problem. On receiving feedback, amend existing commits rather than adding fixup commits — use `git commit --amend` and `git push --force` to update your PR.
 - **Get early feedback on non-trivial PRs.** Open an issue first to discuss the approach. We don't want to waste anyone's time.
-- **Write tests.** Look at `spec/docket/` for unit test patterns and `spec/integration/` for engine tests. Small additions can go into `spec/docket/v2_features_spec.rb` or a new spec file for the feature.
+- **Write tests.** Look at `spec/docit/` for unit test patterns and `spec/integration/` for engine tests. Small additions can go into `spec/docit/v2_features_spec.rb` or a new spec file for the feature.
 - **All tests must pass.** Your PR must pass the full suite to be merged.
 
 ## Getting started
 
 ```bash
 # Fork the repo on GitHub, then:
-git clone https://github.com/YOURGITHUBNAME/docket.git
-cd docket
+git clone https://github.com/YOURGITHUBNAME/docit.git
+cd docit
 
 # Install dependencies
 bundle install
@@ -43,27 +43,27 @@ bundle install
 bundle exec rspec
 
 # Run a specific test file
-bundle exec rspec spec/docket/schema_generator_spec.rb
+bundle exec rspec spec/docit/schema_generator_spec.rb
 
 # Run a single test by line number
-bundle exec rspec spec/docket/v2_features_spec.rb:30
+bundle exec rspec spec/docit/v2_features_spec.rb:30
 ```
 
 ## Project structure
 
 ```
-lib/docket.rb                          # Entry point, configuration, schema registry
-lib/docket/configuration.rb            # Config class (title, auth, tags)
-lib/docket/registry.rb                 # Global operation store
-lib/docket/dsl.rb                      # swagger_doc macro
-lib/docket/operation.rb                # Single endpoint documentation
-lib/docket/builders/                   # DSL builders (response, request_body, parameter)
-lib/docket/schema_definition.rb        # Reusable $ref schema definitions
-lib/docket/schema_generator.rb         # Registry → OpenAPI 3.0.3 spec
-lib/docket/route_inspector.rb          # Rails route introspection
-lib/docket/engine.rb                   # Rails Engine (Swagger UI + spec endpoint)
-app/controllers/docket/ui_controller.rb # Serves Swagger UI and JSON spec
-lib/generators/docket/install/         # rails g docket:install generator
+lib/docit.rb                          # Entry point, configuration, schema registry
+lib/docit/configuration.rb            # Config class (title, auth, tags)
+lib/docit/registry.rb                 # Global operation store
+lib/docit/dsl.rb                      # swagger_doc macro
+lib/docit/operation.rb                # Single endpoint documentation
+lib/docit/builders/                   # DSL builders (response, request_body, parameter)
+lib/docit/schema_definition.rb        # Reusable $ref schema definitions
+lib/docit/schema_generator.rb         # Registry → OpenAPI 3.0.3 spec
+lib/docit/route_inspector.rb          # Rails route introspection
+lib/docit/engine.rb                   # Rails Engine (Swagger UI + spec endpoint)
+app/controllers/docit/ui_controller.rb # Serves Swagger UI and JSON spec
+lib/generators/docit/install/         # rails g docit:install generator
 spec/dummy/                            # Minimal Rails app for integration tests
 ```
 

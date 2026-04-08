@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest a new feature for Docket
+about: Suggest a new feature for Docit
 labels: enhancement
 ---
 

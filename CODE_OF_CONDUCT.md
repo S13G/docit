@@ -30,7 +30,7 @@ Examples of unacceptable behavior:
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the project maintainers at ayflix0@gmail.com. All complaints will
+reported to the project maintainers at siegdomain1@gmail.com. All complaints will
 be reviewed and investigated.
 
 ## Attribution

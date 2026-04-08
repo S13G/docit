@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug to help us improve Docket
+about: Report a bug to help us improve Docit
 labels: bug
 ---
 
@@ -10,7 +10,7 @@ A clear and concise description of the bug.
 
 ## Steps to Reproduce
 
-1. Configure Docket with `...`
+1. Configure Docit with `...`
 2. Add `swagger_doc` to `...`
 3. Visit `/api-docs`
 4. See error
@@ -27,5 +27,5 @@ What actually happened. Include error messages or screenshots if applicable.
 
 - **Ruby version:**
 - **Rails version:**
-- **Docket version:**
+- **Docit version:**
 - **OS:**

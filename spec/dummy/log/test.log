@@ -446,3 +446,31 @@ Processing by Docket::UiController#index as HTML
   Rendering html template
   Rendered html template (Duration: 0.0ms | GC: 0.0ms)
 Completed 200 OK in 0ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+Started GET "/api-docs/spec" for 127.0.0.1 at 2026-04-08 04:45:31 +0100
+Processing by Docit::UiController#spec as JSON
+Completed 200 OK in 1ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+Started GET "/api-docs/spec" for 127.0.0.1 at 2026-04-08 04:45:31 +0100
+Processing by Docit::UiController#spec as JSON
+Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+Started GET "/api-docs/spec" for 127.0.0.1 at 2026-04-08 04:45:31 +0100
+Processing by Docit::UiController#spec as JSON
+Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+Started GET "/api-docs/spec" for 127.0.0.1 at 2026-04-08 04:45:31 +0100
+Processing by Docit::UiController#spec as JSON
+Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+Started GET "/api-docs/spec" for 127.0.0.1 at 2026-04-08 04:45:31 +0100
+Processing by Docit::UiController#spec as JSON
+Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+Started GET "/api-docs/spec" for 127.0.0.1 at 2026-04-08 04:45:31 +0100
+Processing by Docit::UiController#spec as JSON
+Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+Started GET "/api-docs" for 127.0.0.1 at 2026-04-08 04:45:31 +0100
+Processing by Docit::UiController#index as HTML
+  Rendering html template
+  Rendered html template (Duration: 0.0ms | GC: 0.0ms)
+Completed 200 OK in 2ms (Views: 1.9ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+Started GET "/api-docs" for 127.0.0.1 at 2026-04-08 04:45:31 +0100
+Processing by Docit::UiController#index as HTML
+  Rendering html template
+  Rendered html template (Duration: 0.0ms | GC: 0.0ms)
+Completed 200 OK in 0ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)

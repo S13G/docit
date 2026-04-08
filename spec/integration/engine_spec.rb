@@ -6,7 +6,7 @@ require "spec_helper"
 ENV["RAILS_ENV"] = "test"
 require File.expand_path("../dummy/config/environment", __dir__)
 
-RSpec.describe "Docket Engine Integration", type: :request do
+RSpec.describe "Docit Engine Integration", type: :request do
   include Rack::Test::Methods
 
   def app
@@ -14,12 +14,12 @@ RSpec.describe "Docket Engine Integration", type: :request do
   end
 
   before do
-    Docket.reset_configuration!
-    Docket.reset_schemas!
-    Docket.configure do |config|
+    Docit.reset_configuration!
+    Docit.reset_schemas!
+    Docit.configure do |config|
       config.title = "Dummy Test API"
       config.version = "1.0.0"
-      config.description = "A test API for Docket gem integration tests"
+      config.description = "A test API for Docit gem integration tests"
       config.auth :bearer
     end
 

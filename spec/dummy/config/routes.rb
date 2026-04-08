@@ -1,5 +1,5 @@
 Rails.application.routes.draw do
-  mount Docket::Engine => "/api-docs"
+  mount Docit::Engine => "/api-docs"
 
   namespace :api do
     namespace :v1 do
