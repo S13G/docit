@@ -103,12 +103,43 @@ module Docket
 
     def build_properties(props)
       props.each_with_object({}) do |prop, hash|
-        schema = { type: prop[:type].to_s }
+        schema = build_property_schema(prop)
+        hash[prop[:name].to_s] = schema
+      end
+    end
+
+    def build_property_schema(prop)
+      type = prop[:type].to_s
+
+      if type == "array"
+        schema = { type: "array" }
+        if prop[:children]
+          schema[:items] = {
+            type: "object",
+            properties: build_properties(prop[:children])
+          }
+        else
+          items_type = prop[:items]&.to_s || "string"
+          schema[:items] = { type: items_type }
+        end
+        schema[:description] = prop[:description] if prop[:description]
+        schema[:example] = prop[:example] if prop[:example]
+        schema
+      elsif type == "object" && prop[:children]
+        schema = {
+          type: "object",
+          properties: build_properties(prop[:children])
+        }
+        schema[:description] = prop[:description] if prop[:description]
+        schema[:example] = prop[:example] if prop[:example]
+        schema
+      else
+        schema = { type: type }
         schema[:format] = prop[:format].to_s if prop[:format]
         schema[:enum] = prop[:enum] if prop[:enum]
         schema[:example] = prop[:example] if prop[:example]
         schema[:description] = prop[:description] if prop[:description]
-        hash[prop[:name].to_s] = schema
+        schema
       end
     end
 
