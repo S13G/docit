@@ -1,6 +1,5 @@
 # Docit
 
-[![CI](https://github.com/S13G/docket/actions/workflows/ci.yml/badge.svg)](https://github.com/S13G/docket/actions/workflows/ci.yml)
 [![Ruby](https://img.shields.io/badge/ruby-%3E%3D%203.2-red.svg)](https://www.ruby-lang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 

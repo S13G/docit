@@ -9,16 +9,7 @@ module Docit
       end
 
       def register(operation)
-        existing_index = operations.index do |registered_operation|
-          registered_operation.controller == operation.controller &&
-            registered_operation.action == operation.action
-        end
-
-        if existing_index
-          operations[existing_index] = operation
-        else
-          operations << operation
-        end
+        operations << operation
       end
 
       def find(controller:, action:)
