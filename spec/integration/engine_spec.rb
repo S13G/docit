@@ -14,6 +14,7 @@ RSpec.describe "Docit Engine Integration", type: :request do
   end
 
   before do
+    Docit::Registry.clear!
     Docit.reset_configuration!
     Docit.reset_schemas!
     Docit.configure do |config|
@@ -22,10 +23,6 @@ RSpec.describe "Docit Engine Integration", type: :request do
       config.description = "A test API for Docit gem integration tests"
       config.auth :bearer
     end
-
-    # Force-load the controllers so swagger_doc macros run
-    Api::V1::AuthController
-    Api::V1::UsersController
   end
 
   describe "GET /api-docs/spec" do

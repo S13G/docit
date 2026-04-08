@@ -15,8 +15,12 @@ module Docit
 
       controller_paths.each do |path|
         class_name = "#{path}_controller".camelize
+        controller_class = class_name.safe_constantize
+
+        reload_controller(path) if controller_class && !registered_controller?(controller_class.name)
+
         class_name.constantize
-      rescue NameError
+      rescue LoadError, NameError
         # Skip controllers that can't be loaded (e.g., Rails internal routes)
       end
     end
@@ -47,6 +51,19 @@ module Docit
     end
 
     private_class_method :extract_verb
+
+    def self.registered_controller?(controller_name)
+      Registry.operations.any? { |operation| operation.controller == controller_name }
+    end
+
+    private_class_method :registered_controller?
+
+    def self.reload_controller(path)
+      controller_file = Rails.root.join("app/controllers/#{path}_controller.rb")
+      load controller_file if controller_file.exist?
+    end
+
+    private_class_method :reload_controller
 
     def self.normalize_path(path)
       path
