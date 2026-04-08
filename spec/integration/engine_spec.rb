@@ -14,13 +14,19 @@ RSpec.describe "Docit Engine Integration", type: :request do
   end
 
   before do
-    # Re-apply configuration without clearing the registry controllers are loaded once and won't re-register operations.
+    # Clear and re-register: other specs may have called Registry.clear!,
+    # and controllers are only loaded once so use_docs won't re-run automatically.
+    Docit::Registry.clear!
+    Docit.reset_configuration!
     Docit.configure do |config|
       config.title = "Dummy Test API"
       config.version = "1.0.0"
       config.description = "A test API for Docit gem integration tests"
       config.auth :bearer
     end
+
+    Api::V1::AuthController.use_docs Api::V1::AuthDocs
+    Api::V1::UsersController.use_docs Api::V1::UsersDocs
   end
 
   describe "GET /api-docs/spec" do
