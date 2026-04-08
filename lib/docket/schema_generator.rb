@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Docket
+  # Converts the Registry of operations and Configuration into an OpenAPI 3.0.3 spec hash.
   class SchemaGenerator
     def self.generate
       new.generate
@@ -9,7 +10,7 @@ module Docket
     def generate
       config = Docket.configuration
 
-      {
+      spec = {
         openapi: "3.0.3",
         info: {
           title: config.title,
@@ -21,6 +22,17 @@ module Docket
           securitySchemes: config.security_schemes
         }
       }
+
+      tag_defs = config.tags
+      spec[:tags] = tag_defs if tag_defs.any?
+
+      server_defs = config.servers
+      spec[:servers] = server_defs if server_defs.any?
+
+      schemas = build_component_schemas
+      spec[:components][:schemas] = schemas if schemas.any?
+
+      spec
     end
 
     private
@@ -68,15 +80,18 @@ module Docket
       response_builders.each_with_object({}) do |builder, hash|
         entry = { description: builder.description }
 
-        if builder.properties.any?
+        if builder.schema_ref
+          schema = { "$ref" => "#/components/schemas/#{builder.schema_ref}" }
+          content = { "application/json" => { schema: schema } }
+          content["application/json"][:examples] = build_examples(builder.examples) if builder.examples.any?
+          entry[:content] = content
+        elsif builder.properties.any?
           schema = {
             type: "object",
             properties: build_properties(builder.properties)
           }
           content = { "application/json" => { schema: schema } }
-
           content["application/json"][:examples] = build_examples(builder.examples) if builder.examples.any?
-
           entry[:content] = content
         end
 
@@ -85,13 +100,17 @@ module Docket
     end
 
     def build_request_body(request_body_builder)
-      schema = {
-        type: "object",
-        properties: build_properties(request_body_builder.properties)
-      }
+      if request_body_builder.schema_ref
+        schema = { "$ref" => "#/components/schemas/#{request_body_builder.schema_ref}" }
+      else
+        schema = {
+          type: "object",
+          properties: build_properties(request_body_builder.properties)
+        }
 
-      required_properties = request_body_builder.required_properties
-      schema[:required] = required_properties if required_properties.any?
+        required_properties = request_body_builder.required_properties
+        schema[:required] = required_properties if required_properties.any?
+      end
 
       {
         required: request_body_builder.required,
@@ -111,7 +130,11 @@ module Docket
     def build_property_schema(prop)
       type = prop[:type].to_s
 
-      if type == "array"
+      if type == "file"
+        schema = { type: "string", format: "binary" }
+        schema[:description] = prop[:description] if prop[:description]
+        schema
+      elsif type == "array"
         schema = { type: "array" }
         if prop[:children]
           schema[:items] = {
@@ -140,6 +163,16 @@ module Docket
         schema[:example] = prop[:example] if prop[:example]
         schema[:description] = prop[:description] if prop[:description]
         schema
+      end
+    end
+
+    def build_component_schemas
+      Docket.schemas.each_with_object({}) do |(name, definition), hash|
+        schema = {
+          type: "object",
+          properties: build_properties(definition.properties)
+        }
+        hash[name.to_s] = schema
       end
     end
 

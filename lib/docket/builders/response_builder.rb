@@ -2,14 +2,21 @@
 
 module Docket
   module Builders
+    # Builds the schema for a single HTTP response, including properties,
+    # examples, and schema references.
     class ResponseBuilder
-      attr_reader :status, :description, :properties, :examples
+      attr_reader :status, :description, :properties, :examples, :schema_ref
 
       def initialize(status:, description:)
         @status = status
         @description = description
         @properties = []
         @examples = []
+        @schema_ref = nil
+      end
+
+      def schema(ref:)
+        @schema_ref = ref.to_sym
       end
 
       def property(name, type:, format: nil, example: nil, enum: nil, description: nil, items: nil, **opts, &block)

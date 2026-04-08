@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 module Docket
+  # Represents the documentation for a single controller action.
+  # Created by +swagger_doc+ and stored in the {Registry}.
   class Operation
     attr_reader :controller, :action, :_summary, :_description,
                 :_tags, :_responses, :_request_body, :_parameters,

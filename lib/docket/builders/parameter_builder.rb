@@ -2,6 +2,7 @@
 
 module Docket
   module Builders
+    # Collects query, path, and header parameters for an operation.
     class ParameterBuilder
       attr_reader :params
 

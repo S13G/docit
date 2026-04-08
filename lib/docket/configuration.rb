@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Docket
+  # Holds global API documentation settings: metadata, authentication, tags, and servers.
   class Configuration
     attr_accessor :title, :version, :description, :base_url
 
@@ -10,6 +11,8 @@ module Docket
       @description = ""
       @base_url = "/"
       @security_schemes = {}
+      @tags = []
+      @servers = []
     end
 
     def auth(type, **options)
@@ -38,6 +41,26 @@ module Docket
 
     def security_schemes
       @security_schemes.dup
+    end
+
+    def tag(name, description: nil)
+      entry = { name: name.to_s }
+      entry[:description] = description if description
+      @tags << entry
+    end
+
+    def tags
+      @tags.dup
+    end
+
+    def server(url, description: nil)
+      entry = { url: url.to_s }
+      entry[:description] = description if description
+      @servers << entry
+    end
+
+    def servers
+      @servers.dup
     end
   end
 end

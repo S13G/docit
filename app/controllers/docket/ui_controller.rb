@@ -7,6 +7,7 @@ module Docket
     end
 
     def spec
+      RouteInspector.eager_load_controllers!
       render json: SchemaGenerator.generate
     end
 
@@ -14,6 +15,7 @@ module Docket
 
     def swagger_ui_html
       spec_url = "#{request.base_url}#{Docket::Engine.routes.url_helpers.spec_path}"
+      escaped_title = ERB::Util.html_escape(Docket.configuration.title)
 
       <<~HTML
         <!DOCTYPE html>
@@ -21,7 +23,7 @@ module Docket
         <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>#{Docket.configuration.title}</title>
+          <title>#{escaped_title}</title>
           <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
           <style>
             html { box-sizing: border-box; overflow-y: scroll; }

@@ -2,16 +2,24 @@
 
 module Docket
   module Builders
+    # Builds the schema for a request body, including properties,
+    # required fields, and schema references.
     class RequestBodyBuilder
-      attr_reader :properties, :required, :content_type
+      attr_reader :properties, :required, :content_type, :schema_ref
 
       def initialize(required: false, content_type: "application/json")
         @required = required
         @content_type = content_type
         @properties = []
+        @schema_ref = nil
       end
 
-      def property(name, type:, required: false, format: nil, example: nil, enum: nil, description: nil, items: nil, **opts, &block)
+      def schema(ref:)
+        @schema_ref = ref.to_sym
+      end
+
+      def property(name, type:, required: false, format: nil, example: nil, enum: nil, description: nil, items: nil,
+                   **opts, &block)
         prop = { name: name, type: type, required: required }
         prop[:format] = format if format
         prop[:example] = example if example

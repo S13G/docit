@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Docket
+  # Central store for all documented operations.
   class Registry
     class << self
       def operations

@@ -15,6 +15,7 @@ RSpec.describe "Docket Engine Integration", type: :request do
 
   before do
     Docket.reset_configuration!
+    Docket.reset_schemas!
     Docket.configure do |config|
       config.title = "Dummy Test API"
       config.version = "1.0.0"

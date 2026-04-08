@@ -17,6 +17,8 @@ Gem::Specification.new do |spec|
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/S13G/docket"
   spec.metadata["changelog_uri"] = "https://github.com/S13G/docket/blob/main/CHANGELOG.md"
+  spec.metadata["documentation_uri"] = "https://rubydoc.info/gems/docket"
+  spec.metadata["rubygems_mfa_required"] = "true"
 
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
   gemspec = File.basename(__FILE__)

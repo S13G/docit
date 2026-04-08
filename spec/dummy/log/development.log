@@ -1,0 +1,100 @@
+Started GET "/" for 127.0.0.1 at 2026-04-08 04:08:13 +0100
+  [1m[35m (0.3ms)[0m  [1m[35mCREATE TABLE "schema_migrations" ("version" varchar NOT NULL PRIMARY KEY) /*application='Dummy'*/[0m
+  [1m[35m (0.1ms)[0m  [1m[35mCREATE TABLE "ar_internal_metadata" ("key" varchar NOT NULL PRIMARY KEY, "value" varchar, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL) /*application='Dummy'*/[0m
+  [1m[36mActiveRecord::SchemaMigration Load (0.1ms)[0m  [1m[34mSELECT "schema_migrations"."version" FROM "schema_migrations" ORDER BY "schema_migrations"."version" ASC /*application='Dummy'*/[0m
+Processing by Rails::WelcomeController#index as HTML
+  Rendering /Users/ayo/.rbenv/versions/3.4.8/lib/ruby/gems/3.4.0/gems/railties-8.1.3/lib/rails/templates/rails/welcome/index.html.erb
+  Rendered /Users/ayo/.rbenv/versions/3.4.8/lib/ruby/gems/3.4.0/gems/railties-8.1.3/lib/rails/templates/rails/welcome/index.html.erb (Duration: 0.3ms | GC: 0.0ms)
+Completed 200 OK in 7ms (Views: 2.2ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.2ms)
+
+
+Started GET "/" for 127.0.0.1 at 2026-04-08 04:08:14 +0100
+Processing by Rails::WelcomeController#index as HTML
+  Rendering /Users/ayo/.rbenv/versions/3.4.8/lib/ruby/gems/3.4.0/gems/railties-8.1.3/lib/rails/templates/rails/welcome/index.html.erb
+  Rendered /Users/ayo/.rbenv/versions/3.4.8/lib/ruby/gems/3.4.0/gems/railties-8.1.3/lib/rails/templates/rails/welcome/index.html.erb (Duration: 0.1ms | GC: 0.0ms)
+Completed 200 OK in 1ms (Views: 0.6ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+
+
+Started GET "/icon.png" for 127.0.0.1 at 2026-04-08 04:08:14 +0100
+  
+ActionController::RoutingError (No route matches [GET] "/icon.png"):
+  
+Started GET "/icon.png" for 127.0.0.1 at 2026-04-08 04:08:14 +0100
+  
+ActionController::RoutingError (No route matches [GET] "/icon.png"):
+  
+Started GET "/apple-touch-icon-precomposed.png" for 127.0.0.1 at 2026-04-08 04:08:14 +0100
+  
+ActionController::RoutingError (No route matches [GET] "/apple-touch-icon-precomposed.png"):
+  
+Started GET "/apple-touch-icon.png" for 127.0.0.1 at 2026-04-08 04:08:14 +0100
+  
+ActionController::RoutingError (No route matches [GET] "/apple-touch-icon.png"):
+  
+Started GET "/icon.png" for 127.0.0.1 at 2026-04-08 04:08:14 +0100
+  
+ActionController::RoutingError (No route matches [GET] "/icon.png"):
+  
+Started GET "/favicon.ico" for 127.0.0.1 at 2026-04-08 04:08:14 +0100
+  
+ActionController::RoutingError (No route matches [GET] "/favicon.ico"):
+  
+Started GET "/" for 127.0.0.1 at 2026-04-08 04:08:18 +0100
+Processing by Rails::WelcomeController#index as HTML
+  Rendering /Users/ayo/.rbenv/versions/3.4.8/lib/ruby/gems/3.4.0/gems/railties-8.1.3/lib/rails/templates/rails/welcome/index.html.erb
+  Rendered /Users/ayo/.rbenv/versions/3.4.8/lib/ruby/gems/3.4.0/gems/railties-8.1.3/lib/rails/templates/rails/welcome/index.html.erb (Duration: 0.1ms | GC: 0.0ms)
+Completed 200 OK in 1ms (Views: 0.7ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+
+
+Started GET "/api-docs" for 127.0.0.1 at 2026-04-08 04:08:20 +0100
+Processing by Docket::UiController#index as HTML
+  Rendering html template
+  Rendered html template (Duration: 0.0ms | GC: 0.0ms)
+Completed 200 OK in 3ms (Views: 2.3ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+
+
+Started GET "/api-docs/spec" for 127.0.0.1 at 2026-04-08 04:08:22 +0100
+Processing by Docket::UiController#spec as JSON
+Completed 200 OK in 0ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+
+
+Started GET "/api-docs/spec" for 127.0.0.1 at 2026-04-08 04:08:38 +0100
+Processing by Docket::UiController#spec as JSON
+Completed 200 OK in 0ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+
+
+Started GET "/api-docs/spec" for ::1 at 2026-04-08 04:09:05 +0100
+Processing by Docket::UiController#spec as JSON
+Completed 200 OK in 0ms (Views: 0.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+
+
+Started GET "/api-docs" for 127.0.0.1 at 2026-04-08 04:10:31 +0100
+  [1m[36mActiveRecord::SchemaMigration Load (0.3ms)[0m  [1m[34mSELECT "schema_migrations"."version" FROM "schema_migrations" ORDER BY "schema_migrations"."version" ASC /*application='Dummy'*/[0m
+Processing by Docket::UiController#index as HTML
+  Rendering html template
+  Rendered html template (Duration: 0.0ms | GC: 0.0ms)
+Completed 200 OK in 4ms (Views: 3.2ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+
+
+Started GET "/api-docs/spec" for 127.0.0.1 at 2026-04-08 04:10:44 +0100
+Processing by Docket::UiController#spec as JSON
+Completed 200 OK in 18ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.5ms)
+
+
+Started GET "/api-docs/spec" for ::1 at 2026-04-08 04:11:08 +0100
+Processing by Docket::UiController#spec as JSON
+Completed 200 OK in 0ms (Views: 0.1ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+
+
+Started GET "/api-docs" for 127.0.0.1 at 2026-04-08 04:19:22 +0100
+Processing by Docket::UiController#index as HTML
+  Rendering html template
+  Rendered html template (Duration: 0.1ms | GC: 0.0ms)
+Completed 200 OK in 1ms (Views: 1.0ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+
+
+Started GET "/api-docs/spec" for 127.0.0.1 at 2026-04-08 04:19:24 +0100
+Processing by Docket::UiController#spec as JSON
+Completed 200 OK in 3ms (Views: 0.2ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+
+
