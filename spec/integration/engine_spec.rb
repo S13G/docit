@@ -14,10 +14,8 @@ RSpec.describe "Docit Engine Integration", type: :request do
   end
 
   before do
-    # Clear and re-register: other specs may have called Registry.clear!,
-    # and controllers are only loaded once so use_docs won't re-run automatically.
-    Docit::Registry.clear!
     Docit.reset_configuration!
+    Docit.reset_schemas!
     Docit.configure do |config|
       config.title = "Dummy Test API"
       config.version = "1.0.0"
@@ -25,8 +23,9 @@ RSpec.describe "Docit Engine Integration", type: :request do
       config.auth :bearer
     end
 
-    Api::V1::AuthController.use_docs Api::V1::AuthDocs
-    Api::V1::UsersController.use_docs Api::V1::UsersDocs
+    # Force-load the controllers so swagger_doc macros run
+    Api::V1::AuthController
+    Api::V1::UsersController
   end
 
   describe "GET /api-docs/spec" do
