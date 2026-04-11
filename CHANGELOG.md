@@ -30,7 +30,7 @@
 
 - Initial release
 - DSL: `swagger_doc` macro for inline controller documentation
-- DSL: `use_docs` + `Docit::DocFile` for separate doc files (drf-spectacular style)
+- DSL: `use_docs` + `Docit::DocFile` for separate doc files
 - Builders: request body, response, and parameter builders with nested object/array support
 - Schema `$ref` components via `Docit.define_schema`
 - File upload support (`type: :file` → `string/binary`)

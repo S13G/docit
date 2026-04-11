@@ -5,8 +5,6 @@
 
 Decorator-style API documentation for Ruby on Rails. Write OpenAPI 3.0.3 docs with clean controller DSL macros, separate doc modules, or AI-assisted scaffolding for undocumented endpoints.
 
-Inspired by [drf-spectacular](https://github.com/tfranzel/drf-spectacular) for Django REST Framework.
-
 ## Installation
 
 Add Docit to your Gemfile:
@@ -85,7 +83,7 @@ end
 
 ### Style 2: Separate doc files (recommended for larger APIs)
 
-Keep controllers clean by defining docs in dedicated files, just like drf-spectacular:
+Keep controllers clean by defining docs in dedicated files:
 
 ```ruby
 # app/docs/api/v1/users_docs.rb
