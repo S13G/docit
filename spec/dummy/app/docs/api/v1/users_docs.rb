@@ -6,38 +6,35 @@ module Api
       extend Docit::DocFile
 
       doc :index do
-        summary "List all users"
-        description "Returns a paginated list of all users"
+        summary "Retrieve a list of users"
+        description "Returns a list of users with pagination information"
         tags "Users"
-
-        parameter :page, location: :query, type: :integer, description: "Page number"
-        parameter :per_page, location: :query, type: :integer, description: "Items per page"
 
         response 200, "Users retrieved successfully" do
           property :users, type: :array do
             property :id, type: :string, example: "123e4567-e89b-12d3-a456-426614174000"
             property :email, type: :string, example: "user@example.com"
             property :full_name, type: :string, example: "John Doe"
-            property :role, type: :string, enum: %w[customer provider]
           end
-          property :total, type: :integer, example: 42
-          property :page, type: :integer, example: 1
+          property :total, type: :integer, example: 10
+        end
+
+        response 500, "Internal server error" do
+          property :error, type: :string, example: "Internal server error"
         end
       end
 
       doc :show do
-        summary "Get a user by ID"
-        description "Returns the details of a specific user"
+        summary "Retrieve a user by ID"
+        description "Fetches a user's details by their unique identifier"
         tags "Users"
 
-        parameter :id, location: :path, type: :string, required: true, description: "User ID (UUID)"
+        parameter :id, location: :path, type: :string, required: true, description: "User's unique identifier"
 
         response 200, "User found" do
           property :id, type: :string, example: "123e4567-e89b-12d3-a456-426614174000"
           property :email, type: :string, example: "user@example.com"
           property :full_name, type: :string, example: "John Doe"
-          property :role, type: :string, enum: %w[customer provider]
-          property :created_at, type: :string, format: "date-time"
         end
 
         response 404, "User not found" do

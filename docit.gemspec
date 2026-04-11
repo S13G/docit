@@ -8,16 +8,17 @@ Gem::Specification.new do |spec|
   spec.authors = ["S13G"]
   spec.email = ["siegdomain1@gmail.com"]
 
-  spec.summary = "Decorator-style Swagger/OpenAPI documentation generator for Ruby on Rails."
-  spec.description = "Docit lets you write OpenAPI 3.0 docs as clean DSL macros directly on your Rails controller actions. No RSpec integration required, no external doc files. Just annotate and go."
-  spec.homepage = "https://github.com/S13G/docket"
+  spec.summary = "Decorator-style OpenAPI documentation for Rails with inline DSL, doc modules, and AI-assisted scaffolding."
+  spec.description = "Write OpenAPI 3.0.3 documentation for Rails APIs with clean controller DSL macros, separate doc modules, and optional AI-assisted doc generation for undocumented endpoints."
+  spec.homepage = "https://github.com/S13G/docit"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2.0"
 
   spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["source_code_uri"] = "https://github.com/S13G/docket"
-  spec.metadata["changelog_uri"] = "https://github.com/S13G/docket/blob/main/CHANGELOG.md"
+  spec.metadata["source_code_uri"] = "https://github.com/S13G/docit"
+  spec.metadata["changelog_uri"] = "https://github.com/S13G/docit/blob/main/CHANGELOG.md"
   spec.metadata["documentation_uri"] = "https://rubydoc.info/gems/docit"
+  spec.metadata["bug_tracker_uri"] = "https://github.com/S13G/docit/issues"
   spec.metadata["rubygems_mfa_required"] = "true"
 
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
@@ -25,6 +26,7 @@ Gem::Specification.new do |spec|
   spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
     ls.readlines("\x0", chomp: true).reject do |f|
       (f == gemspec) ||
+        f.end_with?(".docit_ai.yml") ||
         f.start_with?(*%w[bin/ Gemfile .gitignore .rspec spec/ .rubocop.yml])
     end
   end

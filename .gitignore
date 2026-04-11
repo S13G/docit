@@ -20,4 +20,6 @@ spec/dummy/tmp/
 *.gem
 
 # Secrets
+.docit_ai.yml
+spec/dummy/.docit_ai.yml
 spec/dummy/config/master.key

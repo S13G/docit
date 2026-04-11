@@ -46,3 +46,5 @@ module Docit
     end
   end
 end
+
+require_relative "docit/ai"

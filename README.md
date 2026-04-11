@@ -3,7 +3,7 @@
 [![Ruby](https://img.shields.io/badge/ruby-%3E%3D%203.2-red.svg)](https://www.ruby-lang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Decorator-style API documentation for Ruby on Rails. Write OpenAPI 3.0 docs as clean DSL macros directly on your controller actions: no separate doc files, no RSpec integration required. Just annotate and go.
+Decorator-style API documentation for Ruby on Rails. Write OpenAPI 3.0.3 docs with clean controller DSL macros, separate doc modules, or AI-assisted scaffolding for undocumented endpoints.
 
 Inspired by [drf-spectacular](https://github.com/tfranzel/drf-spectacular) for Django REST Framework.
 
@@ -22,12 +22,18 @@ bundle install
 rails generate docit:install
 ```
 
-The generator does two things:
+The install generator does everything in one step:
 
 1. Creates `config/initializers/docit.rb` with default settings
 2. Mounts the Swagger UI engine at `/api-docs` in your routes
+3. Asks how you'd like to set up your docs:
+   - **AI automatic docs** — configure an AI provider, then Docit scans your routes and generates complete documentation for every endpoint
+   - **Manual docs** — Docit scans your routes and creates scaffolded doc files with TODO placeholders, injects `use_docs` into controllers, and lets you fill in the details
+   - **Skip** — just install the base config and set up docs later
 
 Visit `/api-docs` to see your interactive API documentation.
+
+If you choose AI setup, Docit stores your provider config in `.docit_ai.yml` with restricted file permissions and adds that file to `.gitignore` when possible.
 
 ## Configuration
 
@@ -372,6 +378,57 @@ end
 
 `type: :file` maps to `{ type: "string", format: "binary" }` in the OpenAPI spec.
 
+## AI Automatic Documentation
+
+Docit can generate complete API documentation using AI. This works with OpenAI, Anthropic, or Groq (free tier available).
+
+### Quick start (included in install)
+
+When you run `rails generate docit:install` and choose option 1 (AI automatic docs), everything is set up automatically — provider configuration, doc generation, controller wiring, and tag injection.
+
+Before the first AI request, Docit warns that your controller source code will be sent to the selected provider and asks for confirmation in interactive terminals.
+
+### Standalone commands
+
+You can also set up AI docs separately:
+
+```bash
+# Configure your AI provider (one-time setup)
+rails generate docit:ai_setup
+
+# Generate docs for all undocumented endpoints
+rails docit:autodoc
+
+# Generate docs for a specific controller
+rails docit:autodoc[Api::V1::UsersController]
+
+# Preview what would be generated without writing files
+DRY_RUN=1 rails docit:autodoc
+```
+
+### Supported providers
+
+| Provider   | Notes |
+|------------|-------|
+| OpenAI     | Requires API key from platform.openai.com |
+| Anthropic  | Requires API key from console.anthropic.com |
+| Groq       | Free tier at console.groq.com |
+
+AI configuration is stored in `.docit_ai.yml`.
+If your app does not have a `.gitignore`, add `.docit_ai.yml` manually.
+
+### What the AI generates
+
+For each undocumented endpoint, Docit:
+
+1. Reads the controller source code
+2. Inspects the route (HTTP method, path, parameters)
+3. Writes the generated doc block to `app/docs/`
+4. Injects `use_docs` into the controller
+5. Adds tag descriptions to the initializer
+
+Do not use AI autodoc on controllers that contain secrets, proprietary business rules, or internal comments you do not want sent to an external provider.
+
 ## How it works
 
 1. `swagger_doc` registers an **Operation** for each controller action in a global **Registry**
@@ -399,7 +456,7 @@ GET /api-docs/spec
 ## Development
 
 ```bash
-git clone https://github.com/S13G/docket.git
+git clone https://github.com/S13G/docit.git
 cd docit
 bundle install
 bundle exec rspec        # run all tests
@@ -407,7 +464,7 @@ bundle exec rspec        # run all tests
 
 ## Contributing
 
-Bug reports and pull requests are welcome on [GitHub](https://github.com/S13G/docket).
+Bug reports and pull requests are welcome on [GitHub](https://github.com/S13G/docit).
 
 ## License
 

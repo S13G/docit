@@ -1,14 +1,22 @@
 # frozen_string_literal: true
 
 Docit.configure do |config|
-  config.title = "Dummy Test API"
+  # The title shown in Swagger UI
+  config.title = "Dummy"
+
+  # API version
   config.version = "1.0.0"
-  config.description = "A test API for Docit gem integration tests"
-  config.auth :bearer
 
-  config.tag "Authentication", description: "User registration and login"
-  config.tag "Users", description: "User management endpoints"
+  # Description shown in Swagger UI
+  config.description = "API documentation powered by Docit"
 
-  config.server "http://localhost:3000", description: "Development"
-  config.server "https://api.example.com", description: "Production"
+  # Authentication scheme (options: :bearer, :basic, :api_key)
+  # config.auth :bearer
+
+  # For API key auth:
+  # config.auth :api_key, name: "X-API-Key", location: "header"
+  config.tag "Authentication", description: "Authentication management endpoints"
+  config.tag "Users", description: "Users management endpoints"
+  config.tag "Products", description: "Products management endpoints"
+  config.tag "Orders", description: "Orders management endpoints"
 end

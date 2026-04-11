@@ -33,7 +33,7 @@ Docit aims for high test coverage and an extensive test suite. Tests enable us t
 
 ```bash
 # Fork the repo on GitHub, then:
-git clone https://github.com/YOURGITHUBNAME/docit.git
+git clone https://github.com/S13G/docit.git
 cd docit
 
 # Install dependencies
