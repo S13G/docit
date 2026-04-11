@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [0.2.1] - 2026-04-11
+
+### Fixed
+- Engine autoloading: `Docit::Engine` is now properly required when Rails is present, fixing `uninitialized constant Docit::Engine` and `Could not find generator 'docit:install'` in consuming apps
+- AI provider clients (OpenAI, Anthropic, Groq) now raise `Docit::Ai::RateLimitError` on 429 responses with parsed retry-after timing
+- `AutodocRunner` now retries rate-limited requests up to 3 times with exponential backoff (capped at 5 minutes) instead of failing immediately
+
 ## [0.2.0] - 2026-04-11
 
 ### Added

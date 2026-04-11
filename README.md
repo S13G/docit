@@ -450,6 +450,8 @@ DRY_RUN=1 rails docit:autodoc
 | Anthropic  | Requires API key from console.anthropic.com |
 | Groq       | Free tier at console.groq.com |
 
+All providers automatically retry on rate-limit (429) errors with exponential backoff, so free-tier usage works out of the box.
+
 AI configuration is stored in `.docit_ai.yml`.
 If your app does not have a `.gitignore`, add `.docit_ai.yml` manually.
 
