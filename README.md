@@ -5,7 +5,7 @@
 
 Decorator-style API documentation for Ruby on Rails. Write OpenAPI 3.0.3 docs with clean controller DSL macros, separate doc modules, or AI-assisted scaffolding for undocumented endpoints.
 
-## Documentation Tree
+## Table Of Contents
 
 - Getting started
   - [Installation](#installation)
