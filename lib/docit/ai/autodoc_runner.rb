@@ -103,6 +103,7 @@ module Docit
       def generate_docs(gaps, config)
         client = Client.for(config)
         generated = Hash.new { |h, k| h[k] = [] }
+        max_retries = 3
 
         @output.puts "Generating documentation............."
 
@@ -116,14 +117,29 @@ module Docit
           end
 
           prompt = builder.build
-          doc_block = client.generate(prompt).strip
-          doc_block = strip_markdown_fences(doc_block)
+          retries = 0
 
-          generated[gap[:controller]] << doc_block
-          @results[:generated] += 1
-          @output.puts " done"
-        rescue Docit::Ai::Error => e
-          @output.puts " failed (#{e.message})"
+          begin
+            doc_block = client.generate(prompt).strip
+            doc_block = strip_markdown_fences(doc_block)
+
+            generated[gap[:controller]] << doc_block
+            @results[:generated] += 1
+            @output.puts " done"
+          rescue Docit::Ai::RateLimitError => e
+            retries += 1
+            if retries <= max_retries
+              wait = e.retry_after || (2**retries * 10)
+              wait = [wait, 300].min # cap at 5 minutes
+              @output.puts " rate limited, waiting #{wait.round}s (attempt #{retries}/#{max_retries})..."
+              sleep(wait)
+              retry
+            else
+              @output.puts " failed (rate limit exceeded after #{max_retries} retries)"
+            end
+          rescue Docit::Ai::Error => e
+            @output.puts " failed (#{e.message})"
+          end
         end
 
         generated

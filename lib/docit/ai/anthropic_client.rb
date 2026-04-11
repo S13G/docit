@@ -41,6 +41,12 @@ module Docit
 
         if response.is_a?(Net::HTTPSuccess) == false
           message = body.dig("error", "message") || "Unknown API error"
+
+          if response.code == "429"
+            retry_after = response["Retry-After"]&.to_f
+            raise RateLimitError.new("Anthropic rate limit exceeded", retry_after: retry_after)
+          end
+
           raise Error, "Anthropic API error (#{response.code}): #{message}"
         end
 

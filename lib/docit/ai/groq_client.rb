@@ -39,6 +39,12 @@ module Docit
 
         if response.is_a?(Net::HTTPSuccess) == false
           message = body.dig("error", "message") || "Unknown API error"
+
+          if response.code == "429"
+            retry_after = parse_retry_after(response, message)
+            raise RateLimitError.new("Groq rate limit exceeded", retry_after: retry_after)
+          end
+
           raise Error, "Groq API error (#{response.code}): #{message}"
         end
 
@@ -49,6 +55,24 @@ module Docit
         JSON.parse(response.body)
       rescue JSON::ParserError
         raise Error, "#{provider_name} returned invalid JSON (HTTP #{response.code})"
+      end
+
+      def parse_retry_after(response, message)
+        # Check Retry-After header first (seconds)
+        if (header = response["Retry-After"])
+          return header.to_f if header.to_f > 0
+        end
+
+        # Parse "try again in XmY.Zs" from error message
+        if message =~ /(\d+)m([\d.]+)s/
+          return (Regexp.last_match(1).to_i * 60) + Regexp.last_match(2).to_f
+        end
+
+        if message =~ /([\d.]+)s/
+          return Regexp.last_match(1).to_f
+        end
+
+        nil
       end
     end
   end

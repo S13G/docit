@@ -47,4 +47,5 @@ module Docit
   end
 end
 
+require_relative "docit/engine" if defined?(Rails::Engine)
 require_relative "docit/ai"
