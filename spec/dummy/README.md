@@ -1,24 +1,16 @@
-# README
+# Dummy App
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+This Rails app exists only as Docit's integration-test host application.
 
-Things you may want to cover:
+## Navigation
 
-* Ruby version
+- Main project guide: [../../README.md](../../README.md)
+- Release history: [../../CHANGELOG.md](../../CHANGELOG.md)
+- Contribution guide: [../../CONTRIBUTING.md](../../CONTRIBUTING.md)
+- Code of conduct: [../../CODE_OF_CONDUCT.md](../../CODE_OF_CONDUCT.md)
 
-* System dependencies
+## Purpose
 
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+- Exercises the engine mount, generated OpenAPI spec, and Swagger UI.
+- Provides fixture controllers and docs used by request and integration specs.
+- Should not be treated as a production application template.

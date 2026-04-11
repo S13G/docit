@@ -5,6 +5,44 @@
 
 Decorator-style API documentation for Ruby on Rails. Write OpenAPI 3.0.3 docs with clean controller DSL macros, separate doc modules, or AI-assisted scaffolding for undocumented endpoints.
 
+## Documentation Tree
+
+- Getting started
+  - [Installation](#installation)
+  - [Configuration](#configuration)
+  - [Usage](#usage)
+- Documentation styles
+  - [Style 1: Inline (simple APIs)](#style-1-inline-simple-apis)
+  - [Style 2: Separate doc files (recommended for larger APIs)](#style-2-separate-doc-files-recommended-for-larger-apis)
+- Endpoint DSL reference
+  - [Endpoint documentation DSL](#endpoint-documentation-dsl)
+  - [Request bodies](#request-bodies)
+  - [Path parameters](#path-parameters)
+  - [Enums](#enums)
+  - [Security](#security)
+  - [Deprecated endpoints](#deprecated-endpoints)
+  - [Nested objects and arrays](#nested-objects-and-arrays)
+  - [Response examples](#response-examples)
+  - [Shared schemas (`$ref`)](#shared-schemas-ref)
+  - [File uploads](#file-uploads)
+- AI documentation
+  - [AI Automatic Documentation](#ai-automatic-documentation)
+  - [Quick start (included in install)](#quick-start-included-in-install)
+  - [Standalone commands](#standalone-commands)
+  - [Supported providers](#supported-providers)
+  - [What the AI generates](#what-the-ai-generates)
+- Runtime and development
+  - [How it works](#how-it-works)
+  - [Mounting at a different path](#mounting-at-a-different-path)
+  - [JSON spec only](#json-spec-only)
+  - [Development](#development)
+  - [Contributing](#contributing)
+  - [License](#license)
+- Project docs
+  - [CHANGELOG](CHANGELOG.md)
+  - [CONTRIBUTING](CONTRIBUTING.md)
+  - [CODE OF CONDUCT](CODE_OF_CONDUCT.md)
+
 ## Installation
 
 Add Docit to your Gemfile:
