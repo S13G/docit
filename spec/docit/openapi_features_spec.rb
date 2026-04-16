@@ -2,7 +2,7 @@
 
 require "docit"
 
-RSpec.describe "V2 Features" do
+RSpec.describe "OpenAPI features" do
   before do
     Docit::Registry.clear!
     Docit.reset_configuration!
@@ -197,9 +197,9 @@ RSpec.describe "V2 Features" do
       end
 
       expect(Docit.configuration.tags).to eq([
-                                                { name: "Users", description: "User management" },
-                                                { name: "Auth", description: "Authentication endpoints" }
-                                              ])
+                                               { name: "Users", description: "User management" },
+                                               { name: "Auth", description: "Authentication endpoints" }
+                                             ])
     end
 
     it "includes tags array in generated spec" do
@@ -249,9 +249,9 @@ RSpec.describe "V2 Features" do
       end
 
       expect(Docit.configuration.servers).to eq([
-                                                   { url: "https://api.example.com", description: "Production" },
-                                                   { url: "https://staging.example.com", description: "Staging" }
-                                                 ])
+                                                  { url: "https://api.example.com", description: "Production" },
+                                                  { url: "https://staging.example.com", description: "Staging" }
+                                                ])
     end
 
     it "includes servers array in generated spec" do

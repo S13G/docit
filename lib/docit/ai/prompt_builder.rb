@@ -66,7 +66,7 @@ module Docit
         @gap = gap
       end
 
-      def build
+      def build(validation_error: nil)
         <<~PROMPT
           You are generating Docit DSL documentation for a Ruby on Rails API endpoint.
 
@@ -89,12 +89,18 @@ module Docit
           Rules:
           - Output ONLY the `doc :#{@gap[:action]} do ... end` block
           - No module wrapper, no explanation, no markdown fences
+          - Use exactly `doc :#{@gap[:action]} do ... end` for the requested action
+          - Use ONLY the DSL methods listed above
           - Infer parameters from the path (e.g., {id} → path parameter)
           - Infer request body from params usage in the controller
           - Infer response structure from render calls
+          - Inside `request_body` and `response` blocks, define nested data only with `property ..., type: :object` or `property ..., type: :array`
+          - Never call standalone helpers such as `object`, `array`, `string`, `integer`, `number`, or `boolean`
+          - Return valid Ruby that can be `instance_eval`'d as-is
           - Use realistic examples
           - Include appropriate error responses
           - Use the controller name to determine appropriate tags
+          #{validation_feedback(validation_error)}
         PROMPT
       end
 
@@ -114,10 +120,22 @@ module Docit
       end
 
       def controller_file_path
-        return nil if defined?(Rails) == false || Rails.respond_to?(:root) == false || Rails.root.nil?
+        return nil unless defined?(::Rails) && ::Rails.respond_to?(:root) && ::Rails.root
 
         relative = @gap[:controller].underscore
-        Rails.root.join("app", "controllers", "#{relative}.rb").to_s
+        ::Rails.root.join("app", "controllers", "#{relative}.rb").to_s
+      end
+
+      def validation_feedback(validation_error)
+        return "" if validation_error.nil? || validation_error.empty?
+
+        <<~FEEDBACK
+
+          Previous attempt failed Docit validation:
+          - #{validation_error}
+
+          Regenerate the block and fix that error.
+        FEEDBACK
       end
     end
   end

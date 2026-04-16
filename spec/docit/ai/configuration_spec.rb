@@ -64,6 +64,15 @@ RSpec.describe Docit::Ai::Configuration do
       expect(mode).to eq(0o600)
     end
 
+    it "includes a reconfiguration comment in the generated YAML file" do
+      described_class.save(provider: "openai", model: "gpt-4o", api_key: "sk-test")
+
+      content = File.read(described_class.config_path)
+      expect(content).to include("# If you want to change the model and start Docit setup again,")
+      expect(content).to include("# rerun: rails generate docit:install")
+      expect(described_class.load.model).to eq("gpt-4o")
+    end
+
     it "raises on save with invalid config" do
       expect do
         described_class.save(provider: "bad", model: "x", api_key: "y")

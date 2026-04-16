@@ -6,6 +6,11 @@ module Docit
   module Ai
     class Configuration
       CONFIG_FILE = ".docit_ai.yml"
+      GENERATED_FILE_COMMENT = <<~TEXT
+        # If you want to change the model and start Docit setup again,
+        # rerun: rails generate docit:install
+
+      TEXT
 
       PROVIDERS = %w[openai anthropic groq].freeze
 
@@ -51,11 +56,13 @@ module Docit
           config = new(provider: provider, model: model, api_key: api_key)
           raise Error, "Invalid configuration" if config.valid? == false
 
-          File.write(config_path, {
+          yaml = {
             "provider" => config.provider,
             "model" => config.model,
             "api_key" => config.api_key
-          }.to_yaml)
+          }.to_yaml
+
+          File.write(config_path, GENERATED_FILE_COMMENT + yaml)
           File.chmod(0o600, config_path)
 
           config

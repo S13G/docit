@@ -3,16 +3,29 @@
 module Docit
   # Holds global API documentation settings: metadata, authentication, tags, and servers.
   class Configuration
+    SUPPORTED_UIS = %i[scalar swagger].freeze
+
     attr_accessor :title, :version, :description, :base_url
+    attr_reader :default_ui
 
     def initialize
       @title = "API Documentation"
       @version = "1.0.0"
-      @description = ""
+      @description = "Welcome to the API documentation. Browse the endpoints below to get started."
       @base_url = "/"
+      @default_ui = :scalar
       @security_schemes = {}
       @tags = []
       @servers = []
+    end
+
+    def default_ui=(value)
+      ui = value.to_sym
+      unless SUPPORTED_UIS.include?(ui)
+        raise ArgumentError, "Unsupported UI: #{value}. Must be one of: #{SUPPORTED_UIS.join(", ")}"
+      end
+
+      @default_ui = ui
     end
 
     def auth(type, **options)

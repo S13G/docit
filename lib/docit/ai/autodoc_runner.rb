@@ -3,6 +3,8 @@
 module Docit
   module Ai
     class AutodocRunner
+      MAX_INVALID_OUTPUT_RETRIES = 2
+
       attr_reader :results
 
       def initialize(controller_filter: nil, dry_run: false, input: $stdin, output: $stdout)
@@ -50,7 +52,7 @@ module Docit
       end
 
       def check_base_setup!
-        if !(defined?(Rails) && Rails.respond_to?(:root) && Rails.root)
+        if defined?(Rails) == false || Rails.respond_to?(:root) == false || Rails.root.nil?
           raise Docit::Error, "Docit requires a Rails application. Run this command from your app root."
         end
 
@@ -82,20 +84,20 @@ module Docit
         @output.puts "Docit will send controller source code to #{config.provider.capitalize} to generate documentation."
         @output.puts "Review the endpoints first if they contain secrets or proprietary logic."
 
-        return if !(@input.respond_to?(:tty?) && @input.tty?)
+        if @input.respond_to?(:tty?) && @input.tty?
+          loop do
+            @output.print "Continue? (y/n): "
+            choice = @input.gets.to_s.strip.downcase
 
-        loop do
-          @output.print "Continue? (y/n): "
-          choice = @input.gets.to_s.strip.downcase
-
-          case choice
-          when "y", "yes"
-            @output.puts ""
-            return
-          when "n", "no"
-            raise Docit::Error, "Autodoc cancelled."
-          else
-            @output.puts "Please enter y or n."
+            case choice
+            when "y", "yes"
+              @output.puts ""
+              return
+            when "n", "no"
+              raise Docit::Error, "Autodoc cancelled."
+            else
+              @output.puts "Please enter y or n."
+            end
           end
         end
       end
@@ -115,17 +117,31 @@ module Docit
             @output.puts " skipped (controller source file not found)"
             next
           end
-
-          prompt = builder.build
           retries = 0
+          invalid_output_retries = 0
+          validation_error = nil
 
           begin
+            prompt = builder.build(validation_error: validation_error)
             doc_block = client.generate(prompt).strip
             doc_block = strip_markdown_fences(doc_block)
+            DocBlockValidator.new(
+              controller: gap[:controller],
+              action: gap[:action],
+              doc_block: doc_block
+            ).validate!
 
             generated[gap[:controller]] << doc_block
             @results[:generated] += 1
             @output.puts " done"
+          rescue Docit::Ai::InvalidDocBlockError => e
+            invalid_output_retries += 1
+            if invalid_output_retries <= MAX_INVALID_OUTPUT_RETRIES
+              validation_error = e.message
+              retry
+            end
+
+            @output.puts " failed (invalid doc DSL: #{e.message})"
           rescue Docit::Ai::RateLimitError => e
             retries += 1
             if retries <= max_retries
@@ -168,11 +184,11 @@ module Docit
 
       def inject_tags(generated)
         all_tags = generated.values.flatten.join("\n").scan(/tags\s+["']([^"']+)["']/).flatten
-        return unless all_tags.any?
-
-        injected = TagInjector.new(tags: all_tags).inject
-        injected.each { |tag| @output.puts "  Added tag \"#{tag}\" to config/initializers/docit.rb" }
-        @results[:tags] = injected
+        if all_tags.any?
+          injected = TagInjector.new(tags: all_tags).inject
+          injected.each { |tag| @output.puts "  Added tag \"#{tag}\" to config/initializers/docit.rb" }
+          @results[:tags] = injected
+        end
       end
 
       def strip_markdown_fences(text)

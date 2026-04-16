@@ -5,6 +5,12 @@
 
 Decorator-style API documentation for Ruby on Rails. Write OpenAPI 3.0.3 docs with clean controller DSL macros, separate doc modules, or AI-assisted scaffolding for undocumented endpoints.
 
+### Scalar (default)
+![Scalar API Reference](docs/images/scalar_image.png)
+
+### Swagger
+![Swagger UI](docs/images/swagger_image.png)
+
 ## Table Of Contents
 
 - Getting started
@@ -32,6 +38,7 @@ Decorator-style API documentation for Ruby on Rails. Write OpenAPI 3.0.3 docs wi
   - [Supported providers](#supported-providers)
   - [What the AI generates](#what-the-ai-generates)
 - Runtime and development
+  - [Documentation UIs](#documentation-uis)
   - [How it works](#how-it-works)
   - [Mounting at a different path](#mounting-at-a-different-path)
   - [JSON spec only](#json-spec-only)
@@ -61,13 +68,13 @@ rails generate docit:install
 The install generator does everything in one step:
 
 1. Creates `config/initializers/docit.rb` with default settings
-2. Mounts the Swagger UI engine at `/api-docs` in your routes
+2. Mounts the documentation engine at `/api-docs` in your routes
 3. Asks how you'd like to set up your docs:
    - **AI automatic docs** — configure an AI provider, then Docit scans your routes and generates complete documentation for every endpoint
    - **Manual docs** — Docit scans your routes and creates scaffolded doc files with TODO placeholders, injects `use_docs` into controllers, and lets you fill in the details
    - **Skip** — just install the base config and set up docs later
 
-Visit `/api-docs` to see your interactive API documentation.
+Visit `/api-docs` to see your interactive API documentation (Scalar by default, Swagger UI also available at `/api-docs/swagger`).
 
 If you choose AI setup, Docit stores your provider config in `.docit_ai.yml` with restricted file permissions and adds that file to `.gitignore` when possible.
 
@@ -81,17 +88,20 @@ Docit.configure do |config|
   config.version     = "1.0.0"
   config.description = "Backend API documentation"
 
+  # Documentation UI: :scalar (default) or :swagger
+  config.default_ui  = :scalar
+
   # Authentication: pick one (or multiple):
   config.auth :bearer                              # Bearer token (JWT by default)
   config.auth :basic                               # HTTP Basic
   config.auth :api_key, name: "X-API-Key",         # API key in header
                          location: "header"
 
-  # Tag descriptions (shown in Swagger UI sidebar):
+  # Tag descriptions (shown in the documentation sidebar):
   config.tag "Users", description: "User account management"
   config.tag "Auth",  description: "Authentication endpoints"
 
-  # Server URLs (shown in Swagger UI server dropdown):
+  # Server URLs (shown in the server dropdown):
   config.server "https://api.example.com", description: "Production"
   config.server "https://staging.example.com", description: "Staging"
   config.server "http://localhost:3000", description: "Development"
@@ -467,11 +477,24 @@ For each undocumented endpoint, Docit:
 
 Do not use AI autodoc on controllers that contain secrets, proprietary business rules, or internal comments you do not want sent to an external provider.
 
+## Documentation UIs
+
+Docit ships with two documentation UIs, both reading from the same OpenAPI spec:
+
+| Path | UI | Notes |
+|------|------|-------|
+| `/api-docs` | Default (Scalar) | Configurable via `config.default_ui` |
+| `/api-docs/scalar` | Scalar API Reference | Modern UI with built-in API client, dark mode, code samples |
+| `/api-docs/swagger` | Swagger UI | Classic OpenAPI explorer |
+| `/api-docs/spec` | Raw JSON | OpenAPI 3.0.3 spec |
+
+Both UIs include a navigation bar to switch between them. Set `config.default_ui = :swagger` to make Swagger the default at `/api-docs`.
+
 ## How it works
 
 1. `swagger_doc` registers an **Operation** for each controller action in a global **Registry**
 2. When someone visits `/api-docs/spec`, Docit's **SchemaGenerator** combines all registered operations with your Rails routes (via **RouteInspector**) to produce an OpenAPI 3.0.3 JSON document
-3. The **Engine** serves Swagger UI at `/api-docs`, pointing it at the generated spec
+3. The **Engine** serves the configured documentation UI at `/api-docs`, pointing it at the generated spec
 
 The DSL is included in all controllers automatically via a Rails Engine initializer — no manual `include` needed if you're using `ActionController::API` or `ActionController::Base`.
 

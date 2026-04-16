@@ -39,6 +39,8 @@ RSpec.describe Docit::Ai::PromptBuilder do
       expect(prompt).to include("Output ONLY")
       expect(prompt).to include("No module wrapper")
       expect(prompt).to include("doc :index do")
+      expect(prompt).to include("Use ONLY the DSL methods listed above")
+      expect(prompt).to include("Never call standalone helpers such as `object`")
     end
 
     context "with path parameters" do
@@ -54,6 +56,16 @@ RSpec.describe Docit::Ai::PromptBuilder do
       it "includes path with parameter" do
         expect(prompt).to include("{id}")
         expect(prompt).to include("Infer parameters from the path")
+      end
+    end
+
+    context "when regenerating after invalid output" do
+      let(:prompt) { builder.build(validation_error: "NameError: undefined local variable or method `object'") }
+
+      it "includes the validation feedback" do
+        expect(prompt).to include("Previous attempt failed Docit validation")
+        expect(prompt).to include("undefined local variable or method `object'")
+        expect(prompt).to include("Regenerate the block and fix that error")
       end
     end
   end

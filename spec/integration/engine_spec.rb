@@ -87,8 +87,35 @@ RSpec.describe "Docit Engine Integration", type: :request do
     end
   end
 
-  describe "GET /api-docs" do
-    before { get "/api-docs" }
+  describe "GET /api-docs (default UI)" do
+    context "when default_ui is :scalar (default)" do
+      before { get "/api-docs" }
+
+      it "returns the Scalar UI page" do
+        expect(last_response.status).to eq(200)
+        expect(last_response.body).to include("@scalar/api-reference")
+      end
+
+      it "points to the spec URL" do
+        expect(last_response.body).to include("/api-docs/spec")
+      end
+    end
+
+    context "when default_ui is :swagger" do
+      before do
+        Docit.configuration.default_ui = :swagger
+        get "/api-docs"
+      end
+
+      it "returns the Swagger UI page" do
+        expect(last_response.status).to eq(200)
+        expect(last_response.body).to include("SwaggerUIBundle")
+      end
+    end
+  end
+
+  describe "GET /api-docs/swagger" do
+    before { get "/api-docs/swagger" }
 
     it "returns the Swagger UI page" do
       expect(last_response.status).to eq(200)
@@ -98,6 +125,27 @@ RSpec.describe "Docit Engine Integration", type: :request do
 
     it "points to the spec URL" do
       expect(last_response.body).to include("/api-docs/spec")
+    end
+
+    it "includes nav bar with link to Scalar" do
+      expect(last_response.body).to include('href="/api-docs/scalar"')
+    end
+  end
+
+  describe "GET /api-docs/scalar" do
+    before { get "/api-docs/scalar" }
+
+    it "returns the Scalar UI page" do
+      expect(last_response.status).to eq(200)
+      expect(last_response.body).to include("@scalar/api-reference")
+    end
+
+    it "points to the spec URL" do
+      expect(last_response.body).to include("/api-docs/spec")
+    end
+
+    it "includes nav bar with link to Swagger" do
+      expect(last_response.body).to include('href="/api-docs/swagger"')
     end
   end
 end

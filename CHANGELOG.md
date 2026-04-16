@@ -1,5 +1,20 @@
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-16
+
+### Added
+- Scalar API Reference as a second documentation UI alongside Swagger UI
+- New routes: `/api-docs/scalar` and `/api-docs/swagger` for direct access to each UI
+- `config.default_ui` option (`:scalar` or `:swagger`) to control which UI renders at the root `/api-docs` path
+- Navigation bar across both UIs for one-click switching between Scalar and Swagger
+- Modular renderer architecture (`Docit::UI::BaseRenderer`, `SwaggerRenderer`, `ScalarRenderer`) for easy extension
+
+### Changed
+- Default documentation UI is now Scalar (previously Swagger UI)
+- `config.description` now defaults to a welcome message instead of an empty string
+- Install generator template now documents the `default_ui` option
+- UI controller refactored from monolithic HTML generation to thin dispatcher with pluggable renderers
+
 ## [0.2.1] - 2026-04-11
 
 ### Fixed

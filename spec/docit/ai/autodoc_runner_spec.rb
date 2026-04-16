@@ -155,6 +155,50 @@ RSpec.describe Docit::Ai::AutodocRunner do
         expect(output.string).to include("failed (rate limited)")
         expect(results[:generated]).to eq(0)
       end
+
+      it "retries when AI returns invalid Docit DSL" do
+        gaps = [{ controller: "Api::V1::UsersController", action: "index", path: "/api/v1/users", method: "get" }]
+        allow_any_instance_of(Docit::Ai::GapDetector).to receive(:detect).and_return(gaps)
+
+        controller_dir = File.join(tmpdir, "app", "controllers", "api", "v1")
+        FileUtils.mkdir_p(controller_dir)
+        File.write(File.join(controller_dir, "users_controller.rb"), <<~RUBY)
+          class Api::V1::UsersController < ApplicationController
+            def index; end
+          end
+        RUBY
+
+        fake_client = double("client")
+        allow(fake_client).to receive(:generate).and_return(
+          <<~DOC,
+            doc :index do
+              response 200, "Success" do
+                object do
+                  property :id, type: :integer, example: 1
+                end
+              end
+            end
+          DOC
+          <<~DOC
+            doc :index do
+              summary "List users"
+              tags "Users"
+              response 200, "Success" do
+                property :id, type: :integer, example: 1
+              end
+            end
+          DOC
+        )
+        allow(Docit::Ai::Client).to receive(:for).and_return(fake_client)
+
+        runner = described_class.new(input: input, output: output)
+        results = runner.run
+
+        expect(output.string).to include("invalid output, retrying")
+        expect(results[:generated]).to eq(1)
+        expect(fake_client).to have_received(:generate).twice
+        expect(File.read(results[:files].first)).to include('summary "List users"')
+      end
     end
   end
 end
