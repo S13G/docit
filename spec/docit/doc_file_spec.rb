@@ -122,7 +122,7 @@ RSpec.describe Docit::DocFile do
       expect(create_op._request_body).not_to be_nil
     end
 
-    it "can mix use_docs with inline swagger_doc" do
+    it "can mix use_docs with inline doc_for" do
       docs = docs_module
       Class.new do
         include Docit::DSL
@@ -130,7 +130,7 @@ RSpec.describe Docit::DocFile do
 
         use_docs docs
 
-        swagger_doc :destroy do
+        doc_for :destroy do
           summary "Delete user"
           tags "Users"
           response 204, "User deleted"
@@ -166,7 +166,7 @@ RSpec.describe Docit::DocFile do
           tags "Orders"
 
           parameter :status, location: :query, type: :string,
-                    enum: %w[pending shipped delivered]
+                             enum: %w[pending shipped delivered]
 
           response 200, "Orders retrieved" do
             property :orders, type: :array do

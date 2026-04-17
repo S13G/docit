@@ -55,7 +55,7 @@ bundle exec rspec spec/docit/v2_features_spec.rb:30
 lib/docit.rb                          # Entry point, configuration, schema registry
 lib/docit/configuration.rb            # Config class (title, auth, tags)
 lib/docit/registry.rb                 # Global operation store
-lib/docit/dsl.rb                      # swagger_doc macro
+lib/docit/dsl.rb                      # doc_for macro
 lib/docit/operation.rb                # Single endpoint documentation
 lib/docit/builders/                   # DSL builders (response, request_body, parameter)
 lib/docit/schema_definition.rb        # Reusable $ref schema definitions

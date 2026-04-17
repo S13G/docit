@@ -80,4 +80,22 @@ RSpec.describe Docit::Operation do
       expect(operation._security).to eq([:bearer_auth])
     end
   end
+
+  describe "#operation_id" do
+    it "sets a custom operation ID" do
+      operation.operation_id "authenticateUser"
+      expect(operation._operation_id).to eq("authenticateUser")
+    end
+
+    it "defaults to nil" do
+      expect(operation._operation_id).to be_nil
+    end
+  end
+
+  describe "#deprecated" do
+    it "marks the operation as deprecated" do
+      operation.deprecated
+      expect(operation._deprecated).to be true
+    end
+  end
 end

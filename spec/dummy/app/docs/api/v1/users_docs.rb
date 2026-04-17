@@ -6,13 +6,9 @@ module Api
       extend Docit::DocFile
 
       doc :index do
-        summary "List all users"
-        description "Retrieves a paginated list of all users in the system"
+        summary "Retrieve a list of users"
+        description "Returns a list of users and the total count"
         tags "Users"
-        security :bearer_auth
-
-        parameter :page, location: :query, type: :integer, required: false, description: "Page number for pagination"
-        parameter :per_page, location: :query, type: :integer, required: false, description: "Number of users per page"
 
         response 200, "Users retrieved successfully" do
           property :users, type: :array do
@@ -20,28 +16,28 @@ module Api
             property :email, type: :string, example: "user@example.com"
             property :full_name, type: :string, example: "John Doe"
           end
-          property :total, type: :integer, example: 42
+          property :total, type: :integer, example: 0
         end
 
-        response 401, "Unauthorized" do
-          property :error, type: :string, example: "Unauthorized"
+        response 500, "Internal server error" do
+          property :error, type: :string, example: "Internal server error"
         end
       end
 
       doc :show do
         summary "Retrieve a user by ID"
-        description "Fetches a single user's details including email and full name"
+        description "Returns a user's details"
         tags "Users"
 
         parameter :id, location: :path, type: :string, required: true, description: "User ID"
 
-        response 200, "User retrieved successfully" do
+        response 200, "User found" do
           property :id, type: :string, example: "123e4567-e89b-12d3-a456-426614174000"
-          property :email, type: :string, example: "test@example.com"
-          property :full_name, type: :string, example: "Test User"
+          property :email, type: :string, example: "user@example.com"
+          property :full_name, type: :string, example: "John Doe"
         end
 
-        response 404, "User not found" do
+        response 404, "Not found" do
           property :error, type: :string, example: "User not found"
         end
       end

@@ -12,11 +12,7 @@ module Docit
 
       spec = {
         openapi: "3.0.3",
-        info: {
-          title: config.title,
-          version: config.version,
-          description: config.description
-        },
+        info: build_info(config),
         paths: build_paths,
         components: {
           securitySchemes: config.security_schemes
@@ -36,6 +32,18 @@ module Docit
     end
 
     private
+
+    def build_info(config)
+      info = {
+        title: config.title,
+        version: config.version,
+        description: config.description
+      }
+      info[:license] = config.license_info if config.license_info
+      info[:contact] = config.contact_info if config.contact_info
+      info[:termsOfService] = config.terms_of_service_url if config.terms_of_service_url
+      info
+    end
 
     def build_paths
       paths = {}
@@ -58,6 +66,7 @@ module Docit
 
     def build_operation(operation)
       result = {
+        operationId: operation._operation_id || generate_operation_id(operation),
         summary: operation._summary || operation.action.humanize,
         description: operation._description || "",
         tags: operation._tags,
@@ -182,6 +191,16 @@ module Docit
         entry[:description] = ex[:description] if ex[:description]
         hash[ex[:name].to_s] = entry
       end
+    end
+
+    def generate_operation_id(operation)
+      # "Api::V1::UsersController" → "users" ; "index" → "listUsers"
+      resource = operation.controller
+                          .gsub(/.*::/, "") # strip namespace
+                          .gsub(/Controller$/, "") # strip suffix
+      action = operation.action
+
+      "#{action}_#{resource}".gsub("::", "_").downcase
     end
   end
 end

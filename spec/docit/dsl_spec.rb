@@ -13,7 +13,7 @@ RSpec.describe Docit::DSL do
         "Api::V1::TestController"
       end
 
-      swagger_doc :index do
+      doc_for :index do
         summary "List all items"
         tags "Items"
         response 200, "Success" do
@@ -21,7 +21,7 @@ RSpec.describe Docit::DSL do
         end
       end
 
-      swagger_doc :create do
+      doc_for :create do
         summary "Create an item"
         tags "Items"
         request_body required: true do
@@ -51,5 +51,25 @@ RSpec.describe Docit::DSL do
     expect(op._request_body).not_to be_nil
     expect(op._request_body.required).to be true
     expect(op._responses.length).to eq(2)
+  end
+
+  describe "swagger_doc backward compatibility" do
+    it "still works as an alias for doc_for" do
+      klass = Class.new do
+        include Docit::DSL
+        def self.name = "Api::V1::LegacyController"
+
+        swagger_doc :index do
+          summary "Legacy endpoint"
+          tags "Legacy"
+          response 200, "OK"
+        end
+      end
+
+      klass # trigger evaluation
+      op = Docit::Registry.find(controller: "Api::V1::LegacyController", action: "index")
+      expect(op).not_to be_nil
+      expect(op._summary).to eq("Legacy endpoint")
+    end
   end
 end

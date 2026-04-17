@@ -2,11 +2,11 @@
 
 module Docit
   # Represents the documentation for a single controller action.
-  # Created by +swagger_doc+ and stored in the {Registry}.
+  # Created by +doc_for+ and stored in the {Registry}.
   class Operation
     attr_reader :controller, :action, :_summary, :_description,
                 :_tags, :_responses, :_request_body, :_parameters,
-                :_security, :_deprecated
+                :_security, :_deprecated, :_operation_id
 
     def initialize(controller:, action:)
       @controller = controller
@@ -17,6 +17,7 @@ module Docit
       @_request_body = nil
       @_security = []
       @_deprecated = false
+      @_operation_id = nil
     end
 
     def summary(text)
@@ -33,6 +34,10 @@ module Docit
 
     def deprecated(value: true)
       @_deprecated = value
+    end
+
+    def operation_id(text)
+      @_operation_id = text
     end
 
     def security(scheme)

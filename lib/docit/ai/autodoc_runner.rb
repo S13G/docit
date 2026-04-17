@@ -62,11 +62,11 @@ module Docit
         end
 
         routes_file = Rails.root.join("config", "routes.rb")
-        if File.exist?(routes_file) && !File.read(routes_file).include?("Docit::Engine")
-          @output.puts "Warning: Docit engine is not mounted in config/routes.rb"
-          @output.puts "  Run: rails generate docit:install (or add: mount Docit::Engine => \"/api-docs\")"
-          @output.puts ""
-        end
+        return unless File.exist?(routes_file) && !File.read(routes_file).include?("Docit::Engine")
+
+        @output.puts "Warning: Docit engine is not mounted in config/routes.rb"
+        @output.puts "  Run: rails generate docit:install (or add: mount Docit::Engine => \"/api-docs\")"
+        @output.puts ""
       end
 
       def detect_gaps
@@ -84,20 +84,20 @@ module Docit
         @output.puts "Docit will send controller source code to #{config.provider.capitalize} to generate documentation."
         @output.puts "Review the endpoints first if they contain secrets or proprietary logic."
 
-        if @input.respond_to?(:tty?) && @input.tty?
-          loop do
-            @output.print "Continue? (y/n): "
-            choice = @input.gets.to_s.strip.downcase
+        return unless @input.respond_to?(:tty?) && @input.tty?
 
-            case choice
-            when "y", "yes"
-              @output.puts ""
-              return
-            when "n", "no"
-              raise Docit::Error, "Autodoc cancelled."
-            else
-              @output.puts "Please enter y or n."
-            end
+        loop do
+          @output.print "Continue? (y/n): "
+          choice = @input.gets.to_s.strip.downcase
+
+          case choice
+          when "y", "yes"
+            @output.puts ""
+            return
+          when "n", "no"
+            raise Docit::Error, "Autodoc cancelled."
+          else
+            @output.puts "Please enter y or n."
           end
         end
       end
@@ -138,6 +138,7 @@ module Docit
             invalid_output_retries += 1
             if invalid_output_retries <= MAX_INVALID_OUTPUT_RETRIES
               validation_error = e.message
+              @output.puts " invalid output, retrying"
               retry
             end
 
@@ -184,11 +185,11 @@ module Docit
 
       def inject_tags(generated)
         all_tags = generated.values.flatten.join("\n").scan(/tags\s+["']([^"']+)["']/).flatten
-        if all_tags.any?
-          injected = TagInjector.new(tags: all_tags).inject
-          injected.each { |tag| @output.puts "  Added tag \"#{tag}\" to config/initializers/docit.rb" }
-          @results[:tags] = injected
-        end
+        return unless all_tags.any?
+
+        injected = TagInjector.new(tags: all_tags).inject
+        injected.each { |tag| @output.puts "  Added tag \"#{tag}\" to config/initializers/docit.rb" }
+        @results[:tags] = injected
       end
 
       def strip_markdown_fences(text)

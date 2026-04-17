@@ -2,14 +2,14 @@
 
 module Docit
   # Included in all Rails controllers via the Engine.
-  # Provides +swagger_doc+ and +use_docs+ class methods.
+  # Provides +doc_for+ and +use_docs+ class methods.
   module DSL
     def self.included(base)
       base.extend(ClassMethods)
     end
 
     module ClassMethods
-      def swagger_doc(action, &block)
+      def doc_for(action, &block)
         operation = Operation.new(
           controller: name,
           action: action
@@ -18,9 +18,12 @@ module Docit
         Registry.register(operation)
       end
 
+      # Backward-compatible alias
+      alias swagger_doc doc_for
+
       def use_docs(doc_module)
         doc_module.actions.each do |action|
-          swagger_doc(action, &doc_module[action])
+          doc_for(action, &doc_module[action])
         end
       end
     end

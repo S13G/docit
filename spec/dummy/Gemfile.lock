@@ -1,7 +1,7 @@
 PATH
   remote: ../..
   specs:
-    docit (0.2.1)
+    docit (0.3.1)
       rails (>= 7.0)
 
 GEM
@@ -277,7 +277,7 @@ CHECKSUMS
   crass (1.0.6)
   date (3.5.1)
   diff-lcs (1.6.2)
-  docit (0.2.1)
+  docit (0.3.1)
   drb (2.2.3)
   erb (6.0.2)
   erubi (1.13.1)

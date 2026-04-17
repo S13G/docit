@@ -37,7 +37,7 @@ RSpec.describe Docit::SchemaGenerator do
         "Api::V1::AuthController"
       end
 
-      swagger_doc :login do
+      doc_for :login do
         summary "Login"
         description "Authenticates a user and returns tokens"
         tags "Authentication"
@@ -57,7 +57,7 @@ RSpec.describe Docit::SchemaGenerator do
         security :bearer_auth
       end
 
-      swagger_doc :register do
+      doc_for :register do
         summary "Register"
         tags "Authentication"
 
@@ -165,6 +165,39 @@ RSpec.describe Docit::SchemaGenerator do
       schema = register_op[:requestBody][:content]["application/json"][:schema]
       role_prop = schema[:properties]["role"]
       expect(role_prop[:enum]).to eq(%w[customer provider])
+    end
+  end
+
+  describe "operationId" do
+    let(:login_op) { spec[:paths]["/api/v1/auth/login"]["post"] }
+    let(:register_op) { spec[:paths]["/api/v1/auth/register"]["post"] }
+
+    it "auto-generates operationId from controller and action" do
+      expect(login_op[:operationId]).to eq("login_auth")
+      expect(register_op[:operationId]).to eq("register_auth")
+    end
+
+    it "uses a custom operationId when set" do
+      Docit::Registry.clear!
+
+      allow(Docit::RouteInspector).to receive(:routes_for)
+        .with("Api::V1::CustomController", "index")
+        .and_return([{ path: "/api/v1/custom", method: "get" }])
+
+      Class.new do
+        include Docit::DSL
+        def self.name = "Api::V1::CustomController"
+
+        doc_for :index do
+          summary "Custom endpoint"
+          operation_id "listAllCustomItems"
+          response 200, "Success"
+        end
+      end
+
+      custom_spec = Docit::SchemaGenerator.generate
+      op = custom_spec[:paths]["/api/v1/custom"]["get"]
+      expect(op[:operationId]).to eq("listAllCustomItems")
     end
   end
 end

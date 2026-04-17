@@ -3,7 +3,7 @@
 namespace :docit do
   desc "Generate documentation for undocumented API endpoints using AI"
   task :autodoc, [:controller] => :environment do |_t, args|
-    dry_run = ENV.fetch("DRY_RUN", "0") == "1" || ARGV.include?("--dry-run")
+    dry_run = ENV.fetch("DRY_RUN", "0") == "1"
     controller_filter = args[:controller]
 
     runner = Docit::Ai::AutodocRunner.new(

@@ -40,7 +40,7 @@ module Docit
       base.instance_variable_set(:@_docs, {})
     end
 
-    # The block receives the same DSL as swagger_doc.
+    # The block receives the same DSL as doc_for.
     def doc(action, &block)
       @_docs[action.to_sym] = block
     end

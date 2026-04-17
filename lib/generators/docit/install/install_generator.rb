@@ -102,7 +102,7 @@ module Docit
         say ""
         say "Next steps:"
         say "  1. Edit config/initializers/docit.rb to customize your API docs"
-        say "  2. Add swagger_doc blocks or create doc files under app/docs/"
+        say "  2. Add doc_for blocks or create doc files under app/docs/"
         say "  3. Visit /api-docs to see your Swagger UI"
         say ""
         say "You can set up docs later with:"
@@ -146,7 +146,7 @@ module Docit
 
       def update_gitignore
         gitignore = Rails.root.join(".gitignore")
-        if !(File.exist?(gitignore))
+        unless File.exist?(gitignore)
           say "Warning: .gitignore not found. Add .docit_ai.yml manually to avoid committing your API key.", :yellow
           return
         end
@@ -167,7 +167,7 @@ module Docit
           choice = ask(prompt).to_s.strip
           return choice if choices.include?(choice)
 
-          say "Invalid choice. Please enter #{choices.join(', ')}.", :red
+          say "Invalid choice. Please enter #{choices.join(", ")}.", :red
         end
       end
 

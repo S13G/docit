@@ -17,6 +17,9 @@ module Docit
       @security_schemes = {}
       @tags = []
       @servers = []
+      @license = nil
+      @contact = nil
+      @terms_of_service = nil
     end
 
     def default_ui=(value)
@@ -74,6 +77,36 @@ module Docit
 
     def servers
       @servers.dup
+    end
+
+    def license(name:, url: nil)
+      entry = { name: name }
+      entry[:url] = url if url
+      @license = entry
+    end
+
+    def license_info
+      @license&.dup
+    end
+
+    def contact(name: nil, email: nil, url: nil)
+      entry = {}
+      entry[:name] = name if name
+      entry[:email] = email if email
+      entry[:url] = url if url
+      @contact = entry
+    end
+
+    def contact_info
+      @contact&.dup
+    end
+
+    def terms_of_service(url)
+      @terms_of_service = url
+    end
+
+    def terms_of_service_url
+      @terms_of_service
     end
   end
 end

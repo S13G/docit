@@ -1,5 +1,22 @@
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-18
+
+### Added
+- `operation_id` DSL method: set a custom `operationId` per endpoint for cleaner SDK codegen
+- Auto-generated `operationId` for every endpoint (e.g., `index_users`, `login_auth`) when not explicitly set
+- `config.license` option: add license info (`name`, `url`) to the OpenAPI spec
+- `config.contact` option: add contact info (`name`, `email`, `url`) to the OpenAPI spec
+- `config.terms_of_service` option: add terms of service URL to the OpenAPI spec
+
+### Changed
+- Renamed `swagger_doc` DSL to `doc_for` (`swagger_doc` still works as a backward-compatible alias)
+
+### Fixed
+- `TagInjector` no longer crashes when `initializer_path` is nil
+- `docit:autodoc` rake task: removed broken `--dry-run` CLI flag (use `DRY_RUN=1` env var instead)
+- Fixed dummy app `auth_docs.rb` summary and request body to match integration test expectations
+
 ## [0.3.1] - 2026-04-17
 
 ### Fixed
@@ -56,7 +73,7 @@
 ## [0.1.0] - 2026-04-08
 
 - Initial release
-- DSL: `swagger_doc` macro for inline controller documentation
+- DSL: `doc_for` macro for inline controller documentation
 - DSL: `use_docs` + `Docit::DocFile` for separate doc files
 - Builders: request body, response, and parameter builders with nested object/array support
 - Schema `$ref` components via `Docit.define_schema`

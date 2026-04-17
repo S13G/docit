@@ -11,7 +11,7 @@ A clear and concise description of the bug.
 ## Steps to Reproduce
 
 1. Configure Docit with `...`
-2. Add `swagger_doc` to `...`
+2. Add `doc_for` to `...`
 3. Visit `/api-docs`
 4. See error
 

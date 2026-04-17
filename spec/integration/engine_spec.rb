@@ -23,7 +23,7 @@ RSpec.describe "Docit Engine Integration", type: :request do
       config.auth :bearer
     end
 
-    # Force-load the controllers so swagger_doc macros run
+    # Force-load the controllers so doc_for macros run
     Api::V1::AuthController
     Api::V1::UsersController
   end

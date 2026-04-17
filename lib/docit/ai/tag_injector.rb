@@ -8,7 +8,7 @@ module Docit
       end
 
       def inject
-        return [] if initializer_path && File.exist?(initializer_path) == false
+        return [] unless initializer_path && File.exist?(initializer_path)
 
         content = File.read(initializer_path)
         existing_tags = content.scan(/config\.tag\s+["']([^"']+)["']/).flatten

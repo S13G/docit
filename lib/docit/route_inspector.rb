@@ -5,7 +5,7 @@ module Docit
   class RouteInspector
     VALID_METHODS = %w[get post put patch delete].freeze
 
-    # Eagerly loads controller classes so swagger_doc/use_docs macros run before spec generation.
+    # Eagerly loads controller classes so doc_for/use_docs macros run before spec generation.
     def self.eager_load_controllers!
       return if defined?(Rails).nil? || Rails.application.routes.nil?
 

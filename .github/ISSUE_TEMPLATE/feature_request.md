@@ -17,7 +17,7 @@ Explain the problem this feature would solve or the workflow it would improve.
 Describe how you'd like it to work, including example DSL usage if applicable:
 
 ```ruby
-swagger_doc :index do
+doc_for :index do
   # your proposed syntax here
 end
 ```

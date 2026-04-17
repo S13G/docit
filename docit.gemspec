@@ -10,14 +10,14 @@ Gem::Specification.new do |spec|
 
   spec.summary = "Decorator-style OpenAPI documentation for Rails with inline DSL, doc modules, and AI-assisted scaffolding."
   spec.description = "Write OpenAPI 3.0.3 documentation for Rails APIs with clean controller DSL macros, separate doc modules, and optional AI-assisted doc generation for undocumented endpoints."
-  spec.homepage = "https://github.com/S13G/docit"
+  spec.homepage = "https://docitruby.dev"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2.0"
 
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/S13G/docit"
   spec.metadata["changelog_uri"] = "https://github.com/S13G/docit/blob/master/CHANGELOG.md"
-  spec.metadata["documentation_uri"] = "https://rubydoc.info/gems/docit"
+  spec.metadata["documentation_uri"] = "https://docitruby.dev/docs"
   spec.metadata["bug_tracker_uri"] = "https://github.com/S13G/docit/issues"
   spec.metadata["rubygems_mfa_required"] = "true"
 

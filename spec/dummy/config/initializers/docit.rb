@@ -1,14 +1,17 @@
 # frozen_string_literal: true
 
 Docit.configure do |config|
-  # The title shown in Swagger UI
+  # The title shown in the API documentation UI
   config.title = "Dummy"
 
   # API version
   config.version = "1.0.0"
 
-  # Description shown in Swagger UI
+  # Description shown on the introduction page
   config.description = "API documentation powered by Docit"
+
+  # Documentation UI: :scalar (default) or :swagger
+  # config.default_ui = :scalar
 
   # Authentication scheme (options: :bearer, :basic, :api_key)
   # config.auth :bearer

@@ -23,7 +23,7 @@ RSpec.describe "Nested property support" do
         "Api::V1::AuthController"
       end
 
-      swagger_doc :login do
+      doc_for :login do
         summary "Login"
         tags "Authentication"
 
@@ -115,7 +115,7 @@ RSpec.describe "Nested property support" do
           "Api::V1::UsersController"
         end
 
-        swagger_doc :index do
+        doc_for :index do
           summary "List users"
           response 200, "Success" do
             property :users, type: :array do

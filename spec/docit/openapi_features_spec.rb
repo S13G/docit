@@ -72,7 +72,7 @@ RSpec.describe "OpenAPI features" do
         include Docit::DSL
         def self.name = "UsersController"
 
-        swagger_doc :show do
+        doc_for :show do
           summary "Get user"
 
           response 200, "User found" do
@@ -97,7 +97,7 @@ RSpec.describe "OpenAPI features" do
         include Docit::DSL
         def self.name = "UsersController"
 
-        swagger_doc :create do
+        doc_for :create do
           summary "Create user"
 
           request_body required: true do
@@ -143,7 +143,7 @@ RSpec.describe "OpenAPI features" do
         include Docit::DSL
         def self.name = "UploadsController"
 
-        swagger_doc :create do
+        doc_for :create do
           summary "Upload file"
 
           request_body required: true, content_type: "multipart/form-data" do
@@ -172,7 +172,7 @@ RSpec.describe "OpenAPI features" do
         include Docit::DSL
         def self.name = "UploadsController"
 
-        swagger_doc :create do
+        doc_for :create do
           request_body required: true, content_type: "multipart/form-data" do
             property :file, type: :file, required: true
           end
@@ -278,6 +278,76 @@ RSpec.describe "OpenAPI features" do
     it "omits servers key when none configured" do
       spec = Docit::SchemaGenerator.generate
       expect(spec).not_to have_key(:servers)
+    end
+  end
+
+  describe "License info" do
+    it "adds license to generated spec" do
+      Docit.configure do |config|
+        config.license name: "MIT", url: "https://opensource.org/licenses/MIT"
+      end
+
+      spec = Docit::SchemaGenerator.generate
+      expect(spec[:info][:license]).to eq({ name: "MIT", url: "https://opensource.org/licenses/MIT" })
+    end
+
+    it "supports license without URL" do
+      Docit.configure do |config|
+        config.license name: "Apache-2.0"
+      end
+
+      spec = Docit::SchemaGenerator.generate
+      expect(spec[:info][:license]).to eq({ name: "Apache-2.0" })
+    end
+
+    it "omits license when not configured" do
+      spec = Docit::SchemaGenerator.generate
+      expect(spec[:info]).not_to have_key(:license)
+    end
+  end
+
+  describe "Contact info" do
+    it "adds contact to generated spec" do
+      Docit.configure do |config|
+        config.contact name: "API Team", email: "api@example.com", url: "https://example.com"
+      end
+
+      spec = Docit::SchemaGenerator.generate
+      expect(spec[:info][:contact]).to eq({
+                                            name: "API Team",
+                                            email: "api@example.com",
+                                            url: "https://example.com"
+                                          })
+    end
+
+    it "supports partial contact info" do
+      Docit.configure do |config|
+        config.contact email: "support@example.com"
+      end
+
+      spec = Docit::SchemaGenerator.generate
+      expect(spec[:info][:contact]).to eq({ email: "support@example.com" })
+    end
+
+    it "omits contact when not configured" do
+      spec = Docit::SchemaGenerator.generate
+      expect(spec[:info]).not_to have_key(:contact)
+    end
+  end
+
+  describe "Terms of service" do
+    it "adds termsOfService to generated spec" do
+      Docit.configure do |config|
+        config.terms_of_service "https://example.com/tos"
+      end
+
+      spec = Docit::SchemaGenerator.generate
+      expect(spec[:info][:termsOfService]).to eq("https://example.com/tos")
+    end
+
+    it "omits termsOfService when not configured" do
+      spec = Docit::SchemaGenerator.generate
+      expect(spec[:info]).not_to have_key(:termsOfService)
     end
   end
 end
