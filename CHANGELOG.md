@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [0.3.1] - 2026-04-17
+
+### Fixed
+- Fixed gem packaging: `doc_block_validator.rb` was missing from the published 0.3.0 gem, causing `LoadError` on require
+
 ## [0.3.0] - 2026-04-16
 
 ### Added
