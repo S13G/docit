@@ -15,6 +15,11 @@ RSpec.describe Docit do
     it "returns the same instance on repeated calls" do
       expect(Docit.configuration).to equal(Docit.configuration)
     end
+
+    it "enables the system graph by default" do
+      expect(Docit.configuration.system_graph_enabled).to be true
+      expect(Docit.configuration.system_graph_excluded_paths).to eq([])
+    end
   end
 
   describe ".configure" do

@@ -14,6 +14,14 @@ RSpec.describe "Docit Engine Integration", type: :request do
   end
 
   before do
+    # Force-load the controllers so doc_for macros are available, then
+    # re-register docs for test isolation after other specs clear the registry.
+    Api::V1::AuthController
+    Api::V1::UsersController
+    Api::V1::ProductsController
+    Api::V1::OrdersController
+
+    Docit::Registry.clear!
     Docit.reset_configuration!
     Docit.reset_schemas!
     Docit.configure do |config|
@@ -23,9 +31,10 @@ RSpec.describe "Docit Engine Integration", type: :request do
       config.auth :bearer
     end
 
-    # Force-load the controllers so doc_for macros run
-    Api::V1::AuthController
-    Api::V1::UsersController
+    Api::V1::AuthController.use_docs Api::V1::AuthDocs
+    Api::V1::UsersController.use_docs Api::V1::UsersDocs
+    Api::V1::ProductsController.use_docs Api::V1::ProductsDocs
+    Api::V1::OrdersController.use_docs Api::V1::OrdersDocs
   end
 
   describe "GET /api-docs/spec" do
@@ -130,6 +139,10 @@ RSpec.describe "Docit Engine Integration", type: :request do
     it "includes nav bar with link to Scalar" do
       expect(last_response.body).to include('href="/api-docs/scalar"')
     end
+
+    it "includes nav bar with link to System" do
+      expect(last_response.body).to include('href="/api-docs/system"')
+    end
   end
 
   describe "GET /api-docs/scalar" do
@@ -146,6 +159,58 @@ RSpec.describe "Docit Engine Integration", type: :request do
 
     it "includes nav bar with link to Swagger" do
       expect(last_response.body).to include('href="/api-docs/swagger"')
+    end
+  end
+
+  describe "GET /api-docs/system.json" do
+    before { get "/api-docs/system.json" }
+
+    it "returns the system graph" do
+      expect(last_response.status).to eq(200)
+
+      graph = JSON.parse(last_response.body)
+      expect(graph["version"]).to eq("1.0")
+      expect(graph["framework"]).to eq("rails")
+      expect(graph["nodes"]).to include(hash_including("id" => "route:get:/api/v1/users", "type" => "route"))
+      expect(graph["edges"]).to include(hash_including("type" => "routes_to", "confidence" => "high"))
+    end
+
+    it "marks documented actions" do
+      graph = JSON.parse(last_response.body)
+      action = graph["nodes"].find { |node| node["id"] == "controller:api:v1:users_controller#index" }
+
+      expect(action["status"]).to eq("documented")
+    end
+  end
+
+  describe "GET /api-docs/system" do
+    before { get "/api-docs/system" }
+
+    it "returns the system map page" do
+      expect(last_response.status).to eq(200)
+      expect(last_response.body).to include("System architecture diagram")
+      expect(last_response.body).to include("/api-docs/system.json")
+      expect(last_response.body).to include("Export PNG")
+      expect(last_response.body).to include("Connect")
+      expect(last_response.body).to include("AI Explain")
+      expect(last_response.body).to include("ai-generate-btn")
+    end
+
+    it "includes nav bar with links to existing UIs" do
+      expect(last_response.body).to include('href="/api-docs/swagger"')
+      expect(last_response.body).to include('href="/api-docs/scalar"')
+    end
+  end
+
+  describe "GET /api-docs/system/insights" do
+    it "returns a setup error when AI is not configured" do
+      allow(Docit::Ai::Configuration).to receive(:load)
+        .and_raise(Docit::Error, "AI not configured. Run: rails generate docit:ai_setup")
+
+      get "/api-docs/system/insights"
+
+      expect(last_response.status).to eq(422)
+      expect(JSON.parse(last_response.body)["error"]).to include("AI not configured")
     end
   end
 end

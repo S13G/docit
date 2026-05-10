@@ -3,10 +3,12 @@
 module Docit
   module UI
     class BaseRenderer
-      attr_reader :spec_url, :title, :nav_paths
+      attr_reader :spec_url, :system_url, :system_insights_url, :title, :nav_paths
 
-      def initialize(spec_url:, nav_paths: {})
+      def initialize(spec_url:, system_url: nil, system_insights_url: nil, nav_paths: {})
         @spec_url = spec_url
+        @system_url = system_url
+        @system_insights_url = system_insights_url
         @nav_paths = nav_paths
         @title = ERB::Util.html_escape(Docit.configuration.title)
       end
@@ -20,6 +22,7 @@ module Docit
       def nav_bar(active:)
         swagger_active = active == :swagger
         scalar_active = active == :scalar
+        system_active = active == :system
 
         <<~HTML
           <nav style="
@@ -32,6 +35,7 @@ module Docit
             <span style="font-weight: 600; margin-right: auto;">#{title}</span>
             #{nav_link("Swagger", nav_paths[:swagger], active: swagger_active)}
             #{nav_link("Scalar", nav_paths[:scalar], active: scalar_active)}
+            #{nav_link("System", nav_paths[:system], active: system_active)}
           </nav>
         HTML
       end
@@ -49,6 +53,14 @@ module Docit
 
       def spec_url_json
         JSON.generate(spec_url)
+      end
+
+      def system_url_json
+        JSON.generate(system_url)
+      end
+
+      def system_insights_url_json
+        JSON.generate(system_insights_url)
       end
     end
   end

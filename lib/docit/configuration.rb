@@ -5,7 +5,8 @@ module Docit
   class Configuration
     SUPPORTED_UIS = %i[scalar swagger].freeze
 
-    attr_accessor :title, :version, :description, :base_url
+    attr_accessor :title, :version, :description, :base_url,
+                  :system_graph_enabled, :system_graph_excluded_paths
     attr_reader :default_ui
 
     def initialize
@@ -13,6 +14,8 @@ module Docit
       @version = "1.0.0"
       @description = "Welcome to the API documentation. Browse the endpoints below to get started."
       @base_url = "/"
+      @system_graph_enabled = true
+      @system_graph_excluded_paths = []
       @default_ui = :scalar
       @security_schemes = {}
       @tags = []

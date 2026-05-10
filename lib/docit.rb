@@ -11,10 +11,14 @@ require_relative "docit/schema_definition"
 require_relative "docit/doc_file"
 require_relative "docit/route_inspector"
 require_relative "docit/schema_generator"
+require_relative "docit/system_graph"
 require_relative "docit/dsl"
 require_relative "docit/ui/base_renderer"
 require_relative "docit/ui/swagger_renderer"
 require_relative "docit/ui/scalar_renderer"
+require_relative "docit/ui/system_styles"
+require_relative "docit/ui/system_script"
+require_relative "docit/ui/system_renderer"
 
 # Docit is a decorator-style API documentation gem for Ruby on Rails.
 # It generates OpenAPI 3.0.3 specs from clean DSL macros on your controllers.

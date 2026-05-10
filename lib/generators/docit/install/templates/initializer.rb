@@ -13,6 +13,10 @@ Docit.configure do |config|
   # Documentation UI: :scalar (default) or :swagger
   # config.default_ui = :scalar
 
+  # System map: local architecture graph at /api-docs/system
+  # config.system_graph_enabled = true
+  # config.system_graph_excluded_paths = []
+
   # Authentication scheme (options: :bearer, :basic, :api_key)
   # config.auth :bearer
 
