@@ -1,8 +1,13 @@
-## [Unreleased]
-
-## [0.4.0] - 2026-04-18
+## [0.4.0] - 2026-05-31
 
 ### Added
+- **System Map**: a local, deterministic architecture graph at `/api-docs/system` (JSON at `/api-docs/system.json`), built from Rails routes, controllers, actions, Docit docs coverage, schemas, models, and source-derived service/job/mailer nodes — no external service required
+- System Map navigation alongside the Scalar and Swagger UIs
+- Light and dark themes for the System Map (light by default), with a toolbar toggle persisted across visits
+- **Diagram view**: interactive architecture graph with drag-to-arrange, scroll-to-zoom, pan, fit-to-screen, and PNG export; click a node to inspect its connections, with neighbouring nodes highlighted; `/` focuses node search
+- Endpoints-section filter for the diagram (Users, Orders, …) that narrows the graph to one resource and everything it touches
+- **Docs view**: a request/response reference grouped by resource, with human-readable endpoint titles derived from doc summaries (falling back to REST conventions), a documentation-coverage indicator per section, and a detail panel showing parameters, request body, and responses
+- AI section explanations in the Docs view: "Explain section" summarises how a resource's endpoints work together, gated by a coverage warning so undocumented sections don't silently spend tokens
 - `operation_id` DSL method: set a custom `operationId` per endpoint for cleaner SDK codegen
 - Auto-generated `operationId` for every endpoint (e.g., `index_users`, `login_auth`) when not explicitly set
 - `config.license` option: add license info (`name`, `url`) to the OpenAPI spec

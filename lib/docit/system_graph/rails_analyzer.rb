@@ -61,6 +61,37 @@ module Docit
 
       def add_doc_node(info, operation, action_id)
         doc_id = "doc:#{info[:controller].underscore}:#{info[:action]}"
+
+        request_body_info = nil
+        if operation._request_body
+          request_body_info = {
+            required: operation._request_body.required,
+            content_type: operation._request_body.content_type,
+            schema_ref: operation._request_body.schema_ref,
+            properties: operation._request_body.properties
+          }
+        end
+
+        responses_info = operation._responses.map do |res|
+          {
+            status: res.status,
+            description: res.description,
+            schema_ref: res.schema_ref,
+            properties: res.properties,
+            examples: res.examples
+          }
+        end
+
+        parameters_info = operation._parameters.params.map do |param|
+          {
+            name: param[:name],
+            location: param[:in],
+            type: param[:schema][:type],
+            required: param[:required],
+            description: param[:description]
+          }
+        end
+
         graph.add_node(Node.new(
                          id: doc_id,
                          type: "doc",
@@ -68,8 +99,11 @@ module Docit
                          metadata: {
                            controller: info[:controller],
                            action: info[:action],
+                           description: operation._description,
                            tags: operation._tags,
-                           responses: operation._responses.map { |response| response.status.to_s }
+                           request_body: request_body_info,
+                           responses: responses_info,
+                           parameters: parameters_info
                          },
                          status: "documented"
                        ))

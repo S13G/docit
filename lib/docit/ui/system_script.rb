@@ -10,8 +10,8 @@ module Docit
 
           /* ───────────────────────── Configuration ───────────────────────── */
 
-          const graphUrl  = #{JSON.generate(graph_url)};
-          const insightsUrl = #{JSON.generate(insights_url)};
+          const graphUrl  = #{json_escape(JSON.generate(graph_url))};
+          const insightsUrl = #{json_escape(JSON.generate(insights_url))};
 
           const TYPE_COLORS = {
             route:      "#4da6ff",
@@ -72,11 +72,12 @@ module Docit
           let graph        = { nodes: [], edges: [], stats: {} };
           let positions    = {};
           let selectedId   = null;
-          let aiMode       = false;
-          let aiSelection  = new Set();
           let dragState    = null;
           let panState     = null;
           let zoom         = { scale: 1, tx: 0, ty: 0 };
+          /* Set of node ids directly adjacent to the selected node, for focus
+             mode. Rebuilt only when the selection changes — not per render. */
+          let focusNeighbors = null;
 
           /* ───────────────────────── DOM refs ───────────────────────── */
 
@@ -85,11 +86,9 @@ module Docit
           const canvasWrap = $("canvas-wrap");
           const panel      = $("panel");
           const searchEl   = $("search");
-          const typeFilter = $("type-filter");
+          const sectionFilterDiagram = $("diagram-section-filter");
           const statsEl    = $("stats");
           const exportBtn  = $('export-png');
-          const aiBtn      = $("ai-explain");
-          const selBadge   = $("selection-count");
           const toastEl    = $("toast");
           const zoomInBtn  = $("zoom-in");
           const zoomOutBtn = $("zoom-out");
@@ -98,6 +97,62 @@ module Docit
           const legendEl   = $("legend");
           const legendToggle  = $("legend-toggle");
           const legendContent = $("legend-content");
+          const themeToggle   = $("theme-toggle");
+
+          /* ───────────────────────── Theme ───────────────────────── */
+
+          const SUN_ICON = '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.6M8 13.4V15M2.4 2.4l1.1 1.1M12.5 12.5l1.1 1.1M1 8h1.6M13.4 8H15M2.4 13.6l1.1-1.1M12.5 3.5l1.1-1.1"/></svg>';
+          const MOON_ICON = '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 9.3A5.5 5.5 0 0 1 6.7 2.5a5.5 5.5 0 1 0 6.8 6.8z"/></svg>';
+
+          /* Shared line-icon glyphs used across panels (replaces emoji). */
+          function lineIcon(paths, size) {
+            var s = size || 14;
+            return '<svg width="' + s + '" height="' + s + '" viewBox="0 0 16 16" fill="none" stroke="currentColor" ' +
+              'stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">' + paths + '</svg>';
+          }
+          const ICON_SPARKLE = '<path d="M8 1.5l1.6 4.3 4.4 1.6-4.4 1.6L8 13.4 6.4 9 2 7.4l4.4-1.6L8 1.5z"/>';
+          const ICON_CLICK   = '<path d="M6 7V3.5a1.2 1.2 0 0 1 2.4 0V7m0-1.2a1.2 1.2 0 0 1 2.4 0V7m0-.6a1.2 1.2 0 0 1 2.4 0v3.2a4 4 0 0 1-4 4H9a4 4 0 0 1-3.3-1.7L3.5 8.8a1.2 1.2 0 0 1 2-1.3L6 8"/>';
+          const ICON_DRAG    = '<path d="M3 8h10M8 3l5 5-5 5M3 8l5-5M3 8l5 5"/>';
+          const ICON_SEARCH  = '<circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3"/>';
+
+          function currentTheme() {
+            return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+          }
+
+          /* The button shows the theme you'll switch TO, the common affordance. */
+          function syncThemeButton() {
+            if (!themeToggle) return;
+            themeToggle.innerHTML = currentTheme() === "dark" ? SUN_ICON : MOON_ICON;
+          }
+
+          function toggleTheme() {
+            var next = currentTheme() === "dark" ? "light" : "dark";
+            if (next === "dark") document.documentElement.setAttribute("data-theme", "dark");
+            else document.documentElement.removeAttribute("data-theme");
+            try { localStorage.setItem("docit-theme", next); } catch (e) {}
+            syncThemeButton();
+            /* Re-render so SVG diagram picks up theme-driven fills. */
+            if (currentView === "diagram") render();
+            else renderStripeDocs();
+          }
+
+          syncThemeButton();
+          if (themeToggle) themeToggle.addEventListener("click", toggleTheme);
+
+          /* "/" focuses node search (diagram view); Esc clears focus/selection. */
+          document.addEventListener("keydown", function(e) {
+            var typing = /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement && document.activeElement.tagName);
+            if (e.key === "/" && !typing && currentView === "diagram") {
+              e.preventDefault();
+              searchEl.focus();
+              searchEl.select();
+            } else if (e.key === "Escape" && selectedId !== null) {
+              selectedId = null;
+              focusNeighbors = null;
+              resetPanel();
+              render();
+            }
+          });
 
           /* ───────────────────────── Init ───────────────────────── */
 
@@ -109,6 +164,7 @@ module Docit
               buildLegend();
               positions = layoutNodes(graph.nodes);
               render();
+              resetPanel();
               setTimeout(zoomToFit, 60);
             })
             .catch(function(err) {
@@ -117,15 +173,76 @@ module Docit
 
           /* ───────────────────────── Events ───────────────────────── */
 
-          searchEl.addEventListener("input", render);
-          typeFilter.addEventListener("change", render);
-          /* connect mode removed */
+          const sectionFilter = $("section-filter");
+          const diagramFilters = $("diagram-filters");
+          const docsFilters    = $("docs-filters");
+
+          searchEl.addEventListener("input", function() {
+            if (currentView === "diagram") render();
+            else renderStripeDocs();
+          });
+          if (sectionFilterDiagram) {
+            sectionFilterDiagram.addEventListener("change", function() {
+              zoomToFit();   /* reframe to the chosen section */
+            });
+          }
+          if (sectionFilter) sectionFilter.addEventListener("change", renderStripeDocs);
           exportBtn.addEventListener("click", exportPng);
-          aiBtn.addEventListener("click", toggleAiMode);
           zoomInBtn.addEventListener("click", function() { applyZoom(1.3); });
           zoomOutBtn.addEventListener("click", function() { applyZoom(0.77); });
           zoomFitBtn.addEventListener("click", zoomToFit);
           legendToggle.addEventListener("click", toggleLegendPanel);
+
+          const viewDiagramBtn = $("view-diagram");
+          const viewListBtn    = $("view-list");
+          const canvasWrapEl   = $("canvas-wrap");
+          const stripeDocsWrapEl = $("stripe-docs-wrap");
+          let currentView = "diagram";
+
+          viewDiagramBtn.addEventListener("click", function() { switchViewMode("diagram"); });
+          viewListBtn.addEventListener("click", function() { switchViewMode("list"); });
+
+          function switchViewMode(mode) {
+            currentView = mode;
+            var isDiagram = mode === "diagram";
+
+            /* Each view shows only the filters that make sense for it:
+               free-text search + type on the diagram, resource section on docs. */
+            if (diagramFilters) diagramFilters.style.display = isDiagram ? "flex" : "none";
+            if (docsFilters)    docsFilters.style.display    = isDiagram ? "none" : "flex";
+
+            if (isDiagram) {
+              viewListBtn.classList.remove("active");
+              viewDiagramBtn.classList.add("active");
+              stripeDocsWrapEl.style.display = "none";
+              canvasWrapEl.style.display = "block";
+              render();
+            } else {
+              viewDiagramBtn.classList.remove("active");
+              viewListBtn.classList.add("active");
+              canvasWrapEl.style.display = "none";
+              stripeDocsWrapEl.style.display = "grid";
+              buildSectionFilter();
+              renderStripeDocs();
+            }
+          }
+
+          /* Populate the resource-section dropdown from controllers, once.
+             Each option is a resource (e.g. "Users"), value is the controller id. */
+          function buildSectionFilter() {
+            if (!sectionFilter || sectionFilter.dataset.built === "1") return;
+            var controllers = graph.nodes
+              .filter(function(n) { return n.type === "controller"; })
+              .map(function(n) { return { id: n.id, name: resourceName(n.label).plural }; })
+              .sort(function(a, b) { return a.name.localeCompare(b.name); });
+            controllers.forEach(function(c) {
+              var opt = document.createElement("option");
+              opt.value = c.id;
+              opt.textContent = c.name;
+              sectionFilter.appendChild(opt);
+            });
+            sectionFilter.dataset.built = "1";
+          }
 
           /* Scroll-wheel zoom */
           canvasWrap.addEventListener("wheel", function(e) {
@@ -158,6 +275,13 @@ module Docit
             render();
           });
           canvasWrap.addEventListener("pointerup", function() {
+            /* A click on empty canvas (no drag) clears focus/selection. */
+            if (panState && !panState.moved && selectedId !== null) {
+              selectedId = null;
+              focusNeighbors = null;
+              resetPanel();
+              render();
+            }
             panState = null;
             canvasWrap.classList.remove("panning");
           });
@@ -173,42 +297,56 @@ module Docit
               graph.edges = graph.edges.filter(function(edge) { return edge.id !== edgeBtn.dataset.edge; });
               if (selectedId) showNodeDetail(selectedId);
               render();
-              return;
-            }
-            var aiCheck = e.target.closest("input[data-ai-node]");
-            if (aiCheck) {
-              toggleAiSelection(aiCheck.dataset.aiNode);
-              return;
-            }
-            var genBtn = e.target.closest("#ai-generate-btn");
-            if (genBtn) {
-              generateAiInsight();
-              return;
-            }
-            var backBtn = e.target.closest("#ai-back-btn");
-            if (backBtn) {
-              showAiSelectionPanel();
-              return;
             }
           });
 
           /* ───────────────────────── Filters & Layout ───────────────────────── */
 
+          /* Populate the diagram's section filter from controllers — one option
+             per resource (Users, Orders…), value is the controller id. Same
+             source as the docs section filter, so the two views agree. */
           function buildFilters() {
-            var types = uniqueSorted(graph.nodes.map(function(n) { return n.type; }));
-            types.forEach(function(t) {
-              var opt = document.createElement("option");
-              opt.value = t;
-              opt.textContent = t;
-              typeFilter.appendChild(opt);
+            if (!sectionFilterDiagram) return;
+            graph.nodes
+              .filter(function(n) { return n.type === "controller"; })
+              .map(function(n) { return { id: n.id, name: resourceName(n.label).plural }; })
+              .sort(function(a, b) { return a.name.localeCompare(b.name); })
+              .forEach(function(c) {
+                var opt = document.createElement("option");
+                opt.value = c.id;
+                opt.textContent = c.name;
+                sectionFilterDiagram.appendChild(opt);
+              });
+          }
+
+          /* All node ids that make up a section's end-to-end story:
+             the controller, its actions, each action's routes & docs, and the
+             models/services/jobs/mailers those actions use. */
+          function sectionNodeIds(controllerId) {
+            var ids = new Set([controllerId]);
+            var actionIds = sectionActionIds(controllerId);
+            actionIds.forEach(function(actionId) {
+              ids.add(actionId);
+              graph.edges.forEach(function(e) {
+                /* incoming: route -> action, doc -> action */
+                if (e.target === actionId && (e.type === "routes_to" || e.type === "documents")) {
+                  ids.add(e.source);
+                }
+                /* outgoing: action -> model/service/job/mailer */
+                if (e.source === actionId) ids.add(e.target);
+              });
             });
+            return ids;
           }
 
           function visibleGraph() {
             var q = searchEl.value.toLowerCase();
-            var t = typeFilter.value;
+            var section = sectionFilterDiagram ? sectionFilterDiagram.value : "";
+            var sectionIds = section ? sectionNodeIds(section) : null;
+
             var nodes = graph.nodes.filter(function(n) {
-              return (!t || n.type === t) && (!q || n.label.toLowerCase().indexOf(q) !== -1);
+              return (!sectionIds || sectionIds.has(n.id)) &&
+                     (!q || n.label.toLowerCase().indexOf(q) !== -1);
             });
             var ids = new Set(nodes.map(function(n) { return n.id; }));
             var edges = graph.edges.filter(function(e) { return ids.has(e.source) && ids.has(e.target); });
@@ -277,8 +415,6 @@ module Docit
           function render() {
             var current = visibleGraph();
             statsEl.textContent = current.nodes.length + " nodes \\u00b7 " + current.edges.length + " edges";
-            selBadge.textContent = aiSelection.size > 0 ? aiSelection.size + " selected" : "";
-            selBadge.classList.toggle("visible", aiSelection.size > 0);
             zoomLabel.textContent = Math.round(zoom.scale * 100) + "%";
 
             if (current.nodes.length === 0) {
@@ -368,7 +504,7 @@ module Docit
               var conf = edge.confidence || "medium";
               var color = EDGE_COLORS[edge.type] || "#7a8fb5";
               var dash = conf === "manual" ? "6,4" : (edge.type === "documents" ? "4,3" : "none");
-              var opacity = aiDimEdge(edge) ? 0.07 : 0.45;
+              var opacity = focusDimEdge(edge) ? 0.07 : 0.45;
               var width = conf === "high" ? 1.6 : 1.2;
 
               return '<path d="' + d + '" stroke="' + color + '" stroke-width="' + width + '" fill="none" ' +
@@ -383,19 +519,17 @@ module Docit
               if (!pos) return "";
               var status = node.status || "unknown";
               var isSel = node.id === selectedId;
-              var isAi = aiSelection.has(node.id);
-              var dimmed = aiDimNode(node.id);
+              var dimmed = focusDimNode(node.id);
               var tc = TYPE_COLORS[node.type] || "#7a8fb5";
               var sc = status === "documented" ? "#34c759" : status === "undocumented" ? "#ffb340" : "#7a8fb5";
 
               var cls = "node " + esc(node.type);
               if (isSel) cls += " selected";
-              if (isAi) cls += " ai-picked";
 
               var opacity = dimmed ? 0.14 : 1;
-              var strokeW = isSel || isAi ? 2 : 1.2;
-              var strokeOp = isSel ? 1 : isAi ? 0.9 : 0.32;
-              var dashArr = isAi ? "6,4" : "";
+              var strokeW = isSel ? 2 : 1.2;
+              var strokeOp = isSel ? 1 : 0.32;
+              var dashArr = "";
               var filter = isSel ? ' filter="url(#glow)"' : "";
 
               /* Header band path — rounded top corners, flat bottom */
@@ -462,7 +596,7 @@ module Docit
               return '<g class="' + cls + '" data-id="' + esc(node.id) + '" transform="translate(' + pos.x + ',' + pos.y + ')" ' +
                 'style="opacity:' + opacity + '"' + filter + '>' +
                 /* Outer card */
-                '<rect width="' + NODE_W + '" height="' + NODE_H + '" rx="14" fill="#161b28" ' +
+                '<rect width="' + NODE_W + '" height="' + NODE_H + '" rx="14" fill="var(--bg-solid)" ' +
                   'stroke="' + tc + '" stroke-width="' + strokeW + '" stroke-opacity="' + strokeOp + '"' +
                   (dashArr ? ' stroke-dasharray="' + dashArr + '"' : '') + '/>' +
                 /* Header band */
@@ -470,35 +604,38 @@ module Docit
                 '<line x1="0" y1="' + HEADER_H + '" x2="' + NODE_W + '" y2="' + HEADER_H + '" stroke="' + tc + '" stroke-width="1" stroke-opacity="0.18"/>' +
                 /* Icon + title in header */
                 iconG +
-                '<text x="' + titleX + '" y="24" fill="#f2f0ec" font-size="12" font-weight="700" font-family="-apple-system,BlinkMacSystemFont,sans-serif" letter-spacing="-0.005em">' + esc(label) + '</text>' +
+                '<text x="' + titleX + '" y="24" fill="var(--text)" font-size="12" font-weight="700" font-family="-apple-system,BlinkMacSystemFont,sans-serif" letter-spacing="-0.005em">' + esc(label) + '</text>' +
                 badge +
                 /* Body lines */
-                (line1 ? '<text x="16" y="60" fill="#a8b4c8" font-size="11" font-family="monospace" letter-spacing="0.02em">' + line1 + '</text>' : '') +
-                (line2 ? '<text x="16" y="' + (line1 ? 82 : 64) + '" fill="#6b7d99" font-size="10.5" font-family="monospace">' + esc(truncate(line2, 38)) + '</text>' : '') +
+                (line1 ? '<text x="16" y="60" fill="var(--smoke)" font-size="11" font-family="monospace" letter-spacing="0.02em">' + line1 + '</text>' : '') +
+                (line2 ? '<text x="16" y="' + (line1 ? 82 : 64) + '" fill="var(--haze)" font-size="10.5" font-family="monospace">' + esc(truncate(line2, 38)) + '</text>' : '') +
               '</g>';
             }).join("");
           }
 
-          /* ───────────────────────── AI dimming helpers ───────────────────────── */
+          /* ───────────────────────── Focus mode ─────────────────────────
+             When a node is selected, spotlight it and its direct neighbors;
+             everything else fades back. Helps trace one component's
+             connections in a busy graph. */
 
-          function aiDimNode(nodeId) {
-            if (!aiMode || aiSelection.size === 0) return false;
-            if (aiSelection.has(nodeId)) return false;
-            return !isNeighborOfSelection(nodeId);
+          function focusActive() { return selectedId !== null && focusNeighbors !== null; }
+
+          function rebuildFocusNeighbors() {
+            if (selectedId === null) { focusNeighbors = null; return; }
+            var set = new Set([selectedId]);
+            graph.edges.forEach(function(e) {
+              if (e.source === selectedId) set.add(e.target);
+              if (e.target === selectedId) set.add(e.source);
+            });
+            focusNeighbors = set;
           }
 
-          function aiDimEdge(edge) {
-            if (!aiMode || aiSelection.size === 0) return false;
-            return !aiSelection.has(edge.source) && !aiSelection.has(edge.target);
+          function focusDimNode(nodeId) {
+            return focusActive() && !focusNeighbors.has(nodeId);
           }
 
-          function isNeighborOfSelection(nodeId) {
-            for (var i = 0; i < graph.edges.length; i++) {
-              var e = graph.edges[i];
-              if ((aiSelection.has(e.source) && e.target === nodeId) ||
-                  (aiSelection.has(e.target) && e.source === nodeId)) return true;
-            }
-            return false;
+          function focusDimEdge(edge) {
+            return focusActive() && edge.source !== selectedId && edge.target !== selectedId;
           }
 
           /* ───────────────────────── Node interactions ───────────────────────── */
@@ -551,232 +688,10 @@ module Docit
             if (dragState && dragState.moved) return;
             var id = e.currentTarget.dataset.id;
 
-            if (aiMode) {
-              toggleAiSelection(id);
-              return;
-            }
-
             selectedId = id;
+            rebuildFocusNeighbors();
             showNodeDetail(id);
             render();
-          }
-
-          /* ───────────────────────── AI Mode ───────────────────────── */
-
-          function toggleAiMode() {
-            aiMode = !aiMode;
-            aiBtn.classList.toggle("active", aiMode);
-
-            if (aiMode) {
-              toast("AI Explain — select controllers, endpoints, or features to understand");
-              showAiSelectionPanel();
-            } else {
-              toast("AI Explain OFF");
-              aiSelection.clear();
-              resetPanel();
-            }
-            render();
-          }
-
-          function toggleAiSelection(id) {
-            if (aiSelection.has(id)) {
-              aiSelection.delete(id);
-            } else {
-              aiSelection.add(id);
-            }
-            if (aiMode) showAiSelectionPanel();
-            render();
-          }
-
-          function showAiSelectionPanel() {
-            var categories = {};
-            var candidates = graph.nodes.filter(function(n) {
-              return ["controller","route","action","model","service","job","mailer","schema"].indexOf(n.type) !== -1;
-            });
-            candidates.forEach(function(n) {
-              (categories[n.type] = categories[n.type] || []).push(n);
-            });
-
-            /* Build controller sections with actions nested */
-            var controllerHtml = "";
-            if (categories.controller && categories.controller.length > 0) {
-              categories.controller.forEach(function(controller) {
-                /* Find actions that belong to this controller */
-                var actions = [];
-                if (categories.action) {
-                  categories.action.forEach(function(action) {
-                    /* Check if action has "contains" edge from controller */
-                    var belongsToController = graph.edges.some(function(e) {
-                      return e.type === "contains" && e.source === controller.id && e.target === action.id;
-                    });
-                    if (belongsToController) {
-                      actions.push(action);
-                    }
-                  });
-                }
-
-                /* Find routes for this controller's actions */
-                var routes = [];
-                if (categories.route) {
-                  categories.route.forEach(function(route) {
-                    var connectsToAction = actions.some(function(action) {
-                      return graph.edges.some(function(e) {
-                        return e.type === "routes_to" && e.source === route.id && e.target === action.id;
-                      });
-                    });
-                    if (connectsToAction) routes.push(route);
-                  });
-                }
-
-                var controllerColor = TYPE_COLORS["controller"] || "#7a8fb5";
-                var controllerChecked = aiSelection.has(controller.id) ? "checked" : "";
-
-                controllerHtml += '<div class="ai-category">' +
-                  '<div class="ai-category-title" style="font-weight:700">' + esc(controller.label) + ' (controller)</div>' +
-                  '<label class="ai-option" style="padding-left:12px;margin-bottom:8px">' +
-                    '<input type="checkbox" data-ai-node="' + esc(controller.id) + '" ' + controllerChecked + '>' +
-                    '<div class="ai-option-info">' +
-                      '<span class="ai-option-label"><span class="ai-option-dot" style="background:' + controllerColor + '"></span>Select controller</span>' +
-                    '</div>' +
-                  '</label>';
-
-                /* Show actions for this controller */
-                if (actions.length > 0) {
-                  controllerHtml += '<div style="margin-left:12px;border-left:1px solid rgba(168,180,200,.2);padding-left:8px">';
-                  actions.forEach(function(action) {
-                    var actionColor = TYPE_COLORS["action"] || "#f5793a";
-                    var actionChecked = aiSelection.has(action.id) ? "checked" : "";
-                    var actionLabel = action.metadata && action.metadata.action ? action.metadata.action : action.label;
-                    var route = routes.find(function(r) {
-                      return graph.edges.some(function(e) {
-                        return e.type === "routes_to" && e.source === r.id && e.target === action.id;
-                      });
-                    });
-                    var routeInfo = route && route.metadata && route.metadata.method && route.metadata.path
-                      ? route.metadata.method.toUpperCase() + " " + route.metadata.path
-                      : "";
-
-                    controllerHtml += '<label class="ai-option" style="margin-bottom:4px">' +
-                      '<input type="checkbox" data-ai-node="' + esc(action.id) + '" ' + actionChecked + '>' +
-                      '<div class="ai-option-info">' +
-                        '<span class="ai-option-label"><span class="ai-option-dot" style="background:' + actionColor + '"></span>' + esc(actionLabel) + '</span>' +
-                        (routeInfo ? '<span class="ai-option-meta" style="font-size:10px;color:var(--haze)">' + esc(routeInfo) + '</span>' : '') +
-                      '</div>' +
-                    '</label>';
-                  });
-                  controllerHtml += '</div>';
-                }
-
-                controllerHtml += '</div>';
-              });
-            }
-
-            /* Other categories: models, services, jobs, etc. */
-            var otherOrder = ["model","service","job","mailer","schema"];
-            var otherHtml = otherOrder.filter(function(t) { return categories[t]; }).map(function(type) {
-              var c = TYPE_COLORS[type] || "#7a8fb5";
-              var items = categories[type].map(function(n) {
-                var checked = aiSelection.has(n.id) ? "checked" : "";
-                return '<label class="ai-option">' +
-                  '<input type="checkbox" data-ai-node="' + esc(n.id) + '" ' + checked + '>' +
-                  '<div class="ai-option-info">' +
-                    '<span class="ai-option-label"><span class="ai-option-dot" style="background:' + c + '"></span>' + esc(n.label) + '</span>' +
-                  '</div>' +
-                '</label>';
-              }).join("");
-              return '<div class="ai-category">' +
-                '<div class="ai-category-title">' + esc(type.charAt(0).toUpperCase() + type.slice(1)) + 's (' + categories[type].length + ')</div>' +
-                items +
-              '</div>';
-            }).join("");
-
-            var count = aiSelection.size;
-            var btnLabel = count > 0 ? "✦ Generate Explanation (" + count + " selected)" : "Select components above";
-            var btnDisabled = count === 0 ? "disabled" : "";
-
-            panel.innerHTML =
-              '<div class="ai-panel-header">' +
-                '<h2>✦ AI Explain</h2>' +
-                '<p>Pick the controllers, endpoints, models, or services you want to understand. The AI will explain how they connect and work together — written so even a junior engineer can follow.</p>' +
-              '</div>' +
-              controllerHtml +
-              otherHtml +
-              '<div class="ai-generate-bar">' +
-                '<button id="ai-generate-btn" class="ai-generate-btn" ' + btnDisabled + '>' + btnLabel + '</button>' +
-              '</div>';
-          }
-
-          function generateAiInsight() {
-            if (aiSelection.size === 0) {
-              toast("Select at least one component first");
-              return;
-            }
-
-            var btn = document.getElementById("ai-generate-btn");
-            if (btn) {
-              btn.disabled = true;
-              btn.textContent = "✦ AI is thinking…";
-              btn.classList.add("loading");
-            }
-
-            var ids = Array.from(aiSelection).join(",");
-            var url = insightsUrl + "?node_ids=" + encodeURIComponent(ids);
-
-            fetch(url)
-              .then(function(r) { return r.json(); })
-              .then(function(data) {
-                if (data.error) throw new Error(data.error);
-                showAiResults(data.insight);
-              })
-              .catch(function(err) {
-                panel.innerHTML =
-                  '<div class="panel-section"><h2>AI Explain</h2><dl>' +
-                    '<dd class="panel-empty">AI insight unavailable: ' + esc(err.message) +
-                    '<br><br>Run <code>rails generate docit:ai_setup</code> to configure an AI provider.</dd>' +
-                  '</dl></div>';
-              });
-          }
-
-          function showAiResults(insight) {
-            /* Parse markdown sections from AI response */
-            var sections = parseMarkdownSections(insight);
-            var html = '<div class="ai-result">' +
-              '<button id="ai-back-btn" class="ai-back-btn">← Back to selection</button>';
-
-            if (sections.length > 0) {
-              sections.forEach(function(sec) {
-                html += '<div class="ai-result-section">' +
-                  '<div class="ai-result-heading"><span class="icon">✦</span> ' + esc(sec.title) + '</div>' +
-                  '<div class="ai-result-body">' + formatMarkdown(sec.body) + '</div>' +
-                '</div>';
-              });
-            } else {
-              html += '<div class="ai-result-section">' +
-                '<div class="ai-result-heading"><span class="icon">✦</span> AI Explanation</div>' +
-                '<div class="ai-result-body"><pre>' + esc(insight) + '</pre></div>' +
-              '</div>';
-            }
-
-            html += '</div>';
-            panel.innerHTML = html;
-          }
-
-          function parseMarkdownSections(md) {
-            var lines = md.split("\\n");
-            var sections = [];
-            var current = null;
-
-            lines.forEach(function(line) {
-              var heading = line.match(/^\#{1,3}\\s+(.+)/);
-              if (heading) {
-                if (current) sections.push(current);
-                current = { title: heading[1].trim(), body: "" };
-              } else if (current) {
-                current.body += line + "\\n";
-              }
-            });
-            if (current) sections.push(current);
-            return sections;
           }
 
           function formatMarkdown(text) {
@@ -786,16 +701,16 @@ module Docit
                 var code = block.replace(/```mermaid\\n?/, "").replace(/```$/, "").trim();
                 return '<div style="margin:10px 0">' +
                   '<div style="font-size:10px;color:var(--haze);font-family:monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Flow diagram</div>' +
-                  '<pre style="background:rgba(26,31,46,.8);border:1px solid rgba(168,180,200,.12);border-radius:8px;padding:12px;font-size:11px;color:#a8b4c8;overflow-x:auto;line-height:1.6">' + esc(code) + '</pre>' +
+                  '<pre style="background:var(--bg-code);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:11px;color:var(--smoke);overflow-x:auto;line-height:1.6">' + esc(code) + '</pre>' +
                 '</div>';
               })
               /* Generic code blocks */
               .replace(/```[\\s\\S]*?```/g, function(block) {
                 var code = block.replace(/```\\w*\\n?/, "").replace(/```$/, "").trim();
-                return '<pre style="background:rgba(26,31,46,.8);border:1px solid rgba(168,180,200,.1);border-radius:8px;padding:10px;font-size:11px;color:#a8b4c8;overflow-x:auto">' + esc(code) + '</pre>';
+                return '<pre style="background:var(--bg-code);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;color:var(--smoke);overflow-x:auto">' + esc(code) + '</pre>';
               })
-              .replace(/\\*\\*(.+?)\\*\\*/g, '<strong style="color:#f2f0ec">$1</strong>')
-              .replace(/`([^`]+)`/g, '<code style="background:rgba(26,31,46,.8);border:1px solid rgba(168,180,200,.1);padding:1px 5px;border-radius:4px;font-size:11px;color:#a8b4c8">$1</code>')
+              .replace(/\\*\\*(.+?)\\*\\*/g, '<strong style="color:var(--text)">$1</strong>')
+              .replace(/`([^`]+)`/g, '<code style="background:var(--bg-code);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-size:11px;color:var(--smoke)">$1</code>')
               /* Bullet lists — ember accent bar instead of purple */
               .replace(/^- (.+)$/gm, '<div style="padding:3px 0 3px 12px;border-left:2px solid rgba(245,121,58,.35);margin:4px 0;color:var(--smoke)">$1</div>')
               /* Numbered lists — ember number instead of purple */
@@ -861,7 +776,7 @@ module Docit
                 '</div>' +
                 '<dl>' +
                   detail("What it does", '<span style="color:var(--smoke);font-size:12px;line-height:1.5">' + desc + '</span>') +
-                  (node.file ? detail("File", '<code style="font-size:11px;color:#a8b4c8;word-break:break-all">' + esc(node.file) + '</code>') : '') +
+                  (node.file ? detail("File", '<code style="font-size:11px;color:var(--smoke);word-break:break-all">' + esc(node.file) + '</code>') : '') +
                   (node.type === "controller" ? (function() {
                     var actions = graph.edges.filter(function(e) { return e.type === "contains" && e.source === node.id; })
                       .map(function(e) { return graph.nodes.find(function(n) { return n.id === e.target; }); })
@@ -878,9 +793,9 @@ module Docit
                         return (r.metadata && r.metadata.method ? r.metadata.method.toUpperCase() : "?") + " " +
                                (r.metadata && r.metadata.path ? r.metadata.path : r.label);
                       }).join(", ") : "(no route)";
-                      return '<div style="margin:6px 0"><span style="color:#f2f0ec;font-weight:600">' + esc(lbl) + '</span> ' +
+                      return '<div style="margin:6px 0"><span style="color:var(--text);font-weight:600">' + esc(lbl) + '</span> ' +
                         '<span style="background:' + sc + '35;color:' + sc + ';font-size:9px;padding:2px 6px;border-radius:3px;display:inline-block">' + st + '</span>' +
-                        '<div style="color:#a8b4c8;font-size:11px;margin-top:2px">' + esc(routeStr) + '</div></div>';
+                        '<div style="color:var(--smoke);font-size:11px;margin-top:2px">' + esc(routeStr) + '</div></div>';
                     }).join("");
                     return detail("Actions (" + actions.length + ")", items);
                   })() : "") +
@@ -930,22 +845,68 @@ module Docit
             return edgeType;
           }
 
+          /* ───────────────────────── Endpoint titles ─────────────────────────
+             A "proper definition" for an endpoint heading. Order of preference:
+               1. the documented summary (human-written, always wins)
+               2. a REST-conventional title derived from the action + resource
+                  (index -> "List Posts", show -> "Get a Post", ...)
+               3. a humanized version of the raw action name as a last resort. */
+
+          function humanize(str) {
+            return String(str)
+              .replace(/[_-]+/g, " ")
+              .replace(/([a-z])([A-Z])/g, "$1 $2")
+              .replace(/\\b\\w/g, function(c) { return c.toUpperCase(); })
+              .trim();
+          }
+
+          /* "UsersController" / "Admin::OrdersController" -> { plural:"Orders", singular:"Order" } */
+          function resourceName(controllerLabel) {
+            var base = String(controllerLabel || "")
+              .split(/::|\\//).pop()
+              .replace(/Controller$/, "");
+            var plural = humanize(base);
+            var singular = plural
+              .replace(/ies$/, "y")
+              .replace(/ses$/, "s")
+              .replace(/s$/, "");
+            return { plural: plural || "Resource", singular: singular || "Resource" };
+          }
+
+          function endpointTitle(action, controllerLabel, docSummary) {
+            if (docSummary && docSummary.trim()) return docSummary.trim();
+
+            var name = (action.metadata && action.metadata.action ? action.metadata.action : action.label) || "";
+            var res = resourceName(controllerLabel);
+            var templates = {
+              index:   "List " + res.plural,
+              show:    "Get a " + res.singular,
+              "new":   "New " + res.singular + " form",
+              create:  "Create a " + res.singular,
+              edit:    "Edit " + res.singular + " form",
+              update:  "Update a " + res.singular,
+              destroy: "Delete a " + res.singular
+            };
+            return templates[name] || humanize(name) + " " + res.singular;
+          }
+
           function resetPanel() {
             panel.innerHTML =
               '<div class="panel-welcome">' +
-                '<div class="welcome-icon">◆</div>' +
+                '<div class="welcome-icon">' +
+                  '<svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="5" height="5" rx="1.2"/><rect x="9" y="2" width="5" height="5" rx="1.2"/><rect x="2" y="9" width="5" height="5" rx="1.2"/><rect x="9" y="9" width="5" height="5" rx="1.2"/><path d="M7 4.5h2M4.5 7v2M11.5 7v2"/></svg>' +
+                '</div>' +
                 '<h2>System Architecture</h2>' +
-                '<p>Click a node to inspect it, or use AI Explain to understand how components work together.</p>' +
+                '<p>Click a node to inspect how it connects to the rest of the system.</p>' +
                 '<div class="welcome-tips">' +
-                  '<div class="tip"><span class="tip-icon">👆</span><span>Click a node to inspect it</span></div>' +
-                  '<div class="tip"><span class="tip-icon">✋</span><span>Drag nodes to rearrange the layout</span></div>' +
-                  '<div class="tip"><span class="tip-icon">🔍</span><span>Scroll to zoom · Shift-drag to pan</span></div>' +
-                  '<div class="tip"><span class="tip-icon">✦</span><span>Use <strong>AI Explain</strong> to understand any part</span></div>' +
+                  '<div class="tip"><span class="tip-icon">' + lineIcon(ICON_CLICK) + '</span><span>Click a node to inspect it</span></div>' +
+                  '<div class="tip"><span class="tip-icon">' + lineIcon(ICON_DRAG) + '</span><span>Drag nodes to rearrange the layout</span></div>' +
+                  '<div class="tip"><span class="tip-icon">' + lineIcon(ICON_SEARCH) + '</span><span>Scroll to zoom · Shift-drag to pan</span></div>' +
                 '</div>' +
               '</div>';
           }
 
-          /* ───────────────────────── PNG Export (fixed) ───────────────────────── */
+          /* ───────────────────────── PNG Export ───────────────────────── */
 
           function exportPng() {
             var svg = document.getElementById("system-svg");
@@ -954,6 +915,9 @@ module Docit
             var current = visibleGraph();
             var bounds = graphBounds(current.nodes);
             var pad = 60;
+
+            /* Export background must match the active theme, not a fixed color. */
+            var exportBg = currentTheme() === "dark" ? "#0f1117" : "#ffffff";
 
             /* Clone and adjust the SVG for standalone rendering */
             var clone = svg.cloneNode(true);
@@ -974,7 +938,7 @@ module Docit
             bg.setAttribute("y", bounds.y - pad);
             bg.setAttribute("width", w);
             bg.setAttribute("height", h);
-            bg.setAttribute("fill", "#0f1117");
+            bg.setAttribute("fill", exportBg);
             clone.insertBefore(bg, clone.firstChild);
 
             /* Serialize to XML string */
@@ -996,7 +960,7 @@ module Docit
               canvasEl.height = h * scale;
               var ctx = canvasEl.getContext("2d");
               ctx.scale(scale, scale);
-              ctx.fillStyle = "#0f1117";
+              ctx.fillStyle = exportBg;
               ctx.fillRect(0, 0, w, h);
               ctx.drawImage(img, 0, 0, w, h);
               URL.revokeObjectURL(url);
@@ -1081,8 +1045,450 @@ module Docit
             return Array.from(new Set(arr)).sort();
           }
 
+          /* ───────────────────────── Stripe Docs logical view ───────────────────────── */
+
+          window.inspectNode = function(nodeId) {
+            selectedId = nodeId;
+            showNodeDetail(nodeId);
+            render();
+            if (window.innerWidth <= 980) {
+              panel.scrollIntoView({ behavior: "smooth" });
+            }
+          };
+
+          /* ───────────────────────── Docs detail panel ───────────────────────── */
+
+          const detailPanel = $("stripe-detail");
+          const detailBody  = $("stripe-detail-body");
+          const detailClose = $("stripe-detail-close");
+
+          /* Action node-ids belonging to a controller (the section's endpoints). */
+          function sectionActionIds(controllerId) {
+            return graph.edges
+              .filter(function(e) { return e.type === "contains" && e.source === controllerId; })
+              .map(function(e) { return e.target; })
+              .filter(function(id) {
+                var n = graph.nodes.find(function(x) { return x.id === id; });
+                return n && n.type === "action";
+              });
+          }
+
+          /* The doc node documenting an action, if any. */
+          function docForAction(actionId) {
+            var docEdge = graph.edges.find(function(e) {
+              return e.type === "documents" && e.target === actionId;
+            });
+            if (!docEdge) return null;
+            return graph.nodes.find(function(n) { return n.id === docEdge.source; });
+          }
+
+          /* The route (method + path) for an action, if any. */
+          function routeForAction(actionId) {
+            var routeEdge = graph.edges.find(function(e) {
+              return e.type === "routes_to" && e.target === actionId;
+            });
+            if (!routeEdge) return null;
+            return graph.nodes.find(function(n) { return n.id === routeEdge.source; });
+          }
+
+          function openDetailPanel(html) {
+            if (!detailPanel || !detailBody) return;
+            detailBody.innerHTML = html;
+            detailPanel.scrollTop = 0;
+            detailPanel.classList.add("open"); /* only matters in drawer mode */
+          }
+
+          function closeDetailPanel() {
+            if (detailPanel) detailPanel.classList.remove("open");
+          }
+
+          if (detailClose) detailClose.addEventListener("click", closeDetailPanel);
+
+          /* Render an endpoint's request/response reference into the panel.
+             All fields come from the doc node — nothing is invented. */
+          function showEndpointDetail(actionId) {
+            var action = graph.nodes.find(function(n) { return n.id === actionId; });
+            if (!action) return;
+
+            /* Highlight the matching card. */
+            var contentEl = $("stripe-content");
+            if (contentEl) {
+              contentEl.querySelectorAll(".stripe-endpoint-card.detail-active").forEach(function(c) {
+                c.classList.remove("detail-active");
+              });
+              var card = document.getElementById("action-" + actionId.replace(/:/g, "-"));
+              if (card) card.classList.add("detail-active");
+            }
+
+            var controllerEdge = graph.edges.find(function(e) { return e.type === "contains" && e.target === actionId; });
+            var controllerLabel = controllerEdge
+              ? (graph.nodes.find(function(n) { return n.id === controllerEdge.source; }) || {}).label
+              : "";
+
+            var route = routeForAction(actionId);
+            var method = route && route.metadata ? (route.metadata.method || "GET").toUpperCase() : "";
+            var path = route && route.metadata ? (route.metadata.path || "") : "";
+            var doc = docForAction(actionId);
+            var meta = (doc && doc.metadata) || {};
+            var actionName = action.metadata && action.metadata.action ? action.metadata.action : action.label;
+            var definition = endpointTitle(action, controllerLabel, doc ? doc.label : "");
+            var methodColor = METHOD_COLORS[method] || "var(--haze)";
+
+            var html = '<div class="detail-kicker">Endpoint</div>';
+            html += '<h2 class="detail-title">' + esc(definition) + '</h2>';
+            if (method && path) {
+              html += '<div class="detail-endpoint-line">' +
+                '<span class="verb" style="color:' + methodColor + '">' + method + '</span>' +
+                '<span class="path">' + esc(path) + '</span></div>';
+            }
+            if (meta.description) {
+              html += '<p class="detail-desc">' + esc(meta.description) + '</p>';
+            }
+
+            html += renderParams(meta.parameters);
+            html += renderRequestBody(meta.request_body);
+            html += renderResponses(meta.responses);
+
+            if (!doc) {
+              html += '<div class="detail-section"><div class="detail-error">' +
+                'This endpoint has no documentation yet. Add a Docit doc-block to ' +
+                '<span class="mono">' + esc(actionName) + '</span> to see its parameters, request body, and responses here.' +
+                '</div></div>';
+            }
+
+            openDetailPanel(html);
+          }
+
+          function renderParams(params) {
+            if (!params || params.length === 0) return "";
+            var rows = params.map(function(p) {
+              return '<div class="detail-param">' +
+                '<div class="detail-param-head">' +
+                  '<span class="detail-param-name">' + esc(p.name) + '</span>' +
+                  (p.type ? '<span class="detail-param-type">' + esc(p.type) + '</span>' : '') +
+                  (p.location ? '<span class="detail-chip loc">' + esc(p.location) + '</span>' : '') +
+                  (p.required ? '<span class="detail-chip req">required</span>' : '') +
+                '</div>' +
+                (p.description ? '<div class="detail-param-desc">' + esc(p.description) + '</div>' : '') +
+              '</div>';
+            }).join("");
+            return '<div class="detail-section"><div class="detail-section-title">Parameters</div>' + rows + '</div>';
+          }
+
+          function renderRequestBody(body) {
+            if (!body) return "";
+            var props = body.properties;
+            var shape;
+            if (props && typeof props === "object") {
+              shape = JSON.stringify(props, null, 2);
+            } else {
+              shape = "(no schema described)";
+            }
+            var ct = body.content_type ? esc(body.content_type) : "application/json";
+            return '<div class="detail-section">' +
+              '<div class="detail-section-title">Request body' + (body.required ? ' · required' : '') + '</div>' +
+              '<div class="detail-param-desc" style="margin-bottom:8px">Content-Type: <span class="mono">' + ct + '</span></div>' +
+              '<pre class="detail-code">' + esc(shape) + '</pre></div>';
+          }
+
+          function renderResponses(responses) {
+            if (!responses || responses.length === 0) return "";
+            var rows = responses.map(function(r) {
+              var status = String(r.status || "");
+              var sc = status.charAt(0) === "2" ? "var(--success)"
+                     : status.charAt(0) === "4" ? "var(--danger)"
+                     : status.charAt(0) === "5" ? "var(--warning)" : "var(--haze)";
+              var body = "";
+              if (r.examples && Object.keys(r.examples).length > 0) {
+                body = '<pre class="detail-code">' + esc(JSON.stringify(r.examples, null, 2)) + '</pre>';
+              } else if (r.properties && Object.keys(r.properties).length > 0) {
+                body = '<pre class="detail-code">' + esc(JSON.stringify(r.properties, null, 2)) + '</pre>';
+              }
+              return '<div class="detail-response">' +
+                '<div class="detail-response-head">' +
+                  '<span class="detail-chip" style="background:' + sc + '1a;color:' + sc + '">' + esc(status) + '</span>' +
+                  (r.description ? '<span class="detail-response-desc">' + esc(r.description) + '</span>' : '') +
+                '</div>' + body +
+              '</div>';
+            }).join("");
+            return '<div class="detail-section"><div class="detail-section-title">Responses</div>' + rows + '</div>';
+          }
+
+          /* Render the AI section explanation into the panel. The
+             undocumented-endpoint warning is handled by the caller. */
+          function showSectionExplain(controllerId) {
+            var ids = sectionActionIds(controllerId);
+            var controller = graph.nodes.find(function(n) { return n.id === controllerId; });
+            var sectionName = controller ? resourceName(controller.label).plural : "Section";
+
+            if (ids.length === 0) {
+              openDetailPanel('<div class="detail-kicker">Section</div><h2 class="detail-title">' + esc(sectionName) +
+                '</h2><div class="detail-error">No endpoints to explain in this section.</div>');
+              return;
+            }
+
+            openDetailPanel('<div class="detail-kicker">Section</div><h2 class="detail-title">' + esc(sectionName) + '</h2>' +
+              '<div class="detail-ai-head">' + lineIcon(ICON_SPARKLE) + ' How this section works</div>' +
+              '<div class="detail-loading">Generating explanation…</div>');
+
+            var url = insightsUrl + "?mode=section&node_ids=" + encodeURIComponent(ids.join(","));
+            fetch(url)
+              .then(function(r) { return r.json(); })
+              .then(function(data) {
+                if (data.error) throw new Error(data.error);
+                openDetailPanel('<div class="detail-kicker">Section</div><h2 class="detail-title">' + esc(sectionName) + '</h2>' +
+                  '<div class="detail-ai-head">' + lineIcon(ICON_SPARKLE) + ' How this section works</div>' +
+                  '<div class="detail-ai-body">' + formatMarkdown(data.insight) + '</div>');
+              })
+              .catch(function(err) {
+                openDetailPanel('<div class="detail-kicker">Section</div><h2 class="detail-title">' + esc(sectionName) + '</h2>' +
+                  '<div class="detail-error">Explanation unavailable: ' + esc(err.message) +
+                  '<br>Run <span class="mono">rails generate docit:ai_setup</span> to configure an AI provider.</div>');
+              });
+          }
+
+          /* One-time delegation on the docs content: section Explain + endpoint clicks. */
+          (function bindDocsInteractions() {
+            var content = $("stripe-content");
+            if (!content) return;
+            content.addEventListener("click", function(e) {
+              var sectionBtn = e.target.closest(".stripe-explain-btn");
+              if (sectionBtn) {
+                /* Gate: warn before spending tokens on a thinly-documented section. */
+                if (sectionBtn.dataset.fulldoc !== "1") {
+                  var ok = window.confirm(
+                    sectionBtn.dataset.undoc + " endpoint(s) in this section are undocumented.\\n\\n" +
+                    "The explanation may be weak and will use more tokens. For the best result, " +
+                    "document these endpoints first.\\n\\nGenerate anyway?");
+                  if (!ok) return;
+                }
+                showSectionExplain(sectionBtn.dataset.section);
+                return;
+              }
+              /* Relation cards have their own behavior (jump to the diagram). */
+              if (e.target.closest(".stripe-relation-card")) return;
+              /* A click on an endpoint card (or its View details button) opens
+                 that endpoint's request/response detail in the panel. */
+              var endpointBtn = e.target.closest(".stripe-endpoint-explain");
+              if (endpointBtn) { showEndpointDetail(endpointBtn.dataset.action); return; }
+              var card = e.target.closest(".stripe-endpoint-card");
+              if (card && card.dataset.action) { showEndpointDetail(card.dataset.action); return; }
+            });
+          })();
+
+          function renderStripeDocs() {
+            const sidebar = $("stripe-sidebar");
+            const content = $("stripe-content");
+            if (!sidebar || !content) return;
+
+            /* Docs view filters by resource section, not free-text. An empty
+               value means "All sections"; otherwise it's a controller id. */
+            const selectedSection = sectionFilter ? sectionFilter.value : "";
+            let controllers = graph.nodes.filter(function(n) {
+              return n.type === "controller" && (!selectedSection || n.id === selectedSection);
+            });
+
+            controllers = controllers.sort(function(a, b) { return a.label.localeCompare(b.label); });
+
+            let sidebarHtml = "";
+            let contentHtml = "";
+
+            if (controllers.length === 0) {
+              content.innerHTML = '<div class="panel-empty">No endpoints found for this section.</div>';
+              sidebar.innerHTML = "";
+              return;
+            }
+
+            controllers.forEach(function(controller) {
+              let actions = graph.edges
+                .filter(function(e) { return e.type === "contains" && e.source === controller.id; })
+                .map(function(e) { return graph.nodes.find(function(n) { return n.id === e.target; }); })
+                .filter(function(n) { return n && n.type === "action"; });
+
+              actions = actions.sort(function(a, b) { return a.label.localeCompare(b.label); });
+              if (actions.length === 0) return;
+
+              const controllerAnchor = "controller-" + controller.id.replace(/:/g, "-");
+              
+              sidebarHtml += '<div class="stripe-sidebar-group">';
+              sidebarHtml += '<div class="stripe-sidebar-heading">' + esc(controller.label.replace("Controller", "")) + '</div>';
+
+              var res = resourceName(controller.label);
+
+              /* Documentation coverage drives both the badge and the AI gate:
+                 a fully-documented section gives the model real input; a thin
+                 one yields a weak explanation and still costs tokens. */
+              var documentedCount = actions.filter(function(a) { return a.status === "documented"; }).length;
+              var totalCount = actions.length;
+              var fullyDocumented = documentedCount === totalCount;
+              var coverageColor = fullyDocumented ? "var(--success)" : "var(--warning)";
+
+              contentHtml += '<section class="stripe-controller-block" id="' + controllerAnchor + '">';
+              contentHtml += '  <div class="stripe-controller-header">';
+              contentHtml += '    <div>';
+              contentHtml += '      <div class="stripe-controller-kicker">Resource</div>';
+              contentHtml += '      <h2 class="stripe-controller-title">' + esc(res.plural) + '</h2>';
+              contentHtml += '    </div>';
+              contentHtml += '    <div class="stripe-controller-aside">';
+              contentHtml += '      <span class="stripe-coverage" style="color:' + coverageColor + ';border-color:' + coverageColor + '40;background:' + coverageColor + '12">' +
+                documentedCount + '/' + totalCount + ' documented</span>';
+              contentHtml += '      <button class="stripe-explain-btn" type="button" ' +
+                'data-section="' + esc(controller.id) + '" data-fulldoc="' + (fullyDocumented ? "1" : "0") +
+                '" data-undoc="' + (totalCount - documentedCount) + '">Explain section</button>';
+              contentHtml += '    </div>';
+              contentHtml += '  </div>';
+              contentHtml += '  <p class="stripe-controller-sub">' + actions.length + ' endpoint' + (actions.length === 1 ? '' : 's') +
+                (controller.file ? ' &middot; <span class="mono">' + esc(controller.file) + '</span>' : '') + '</p>';
+
+              actions.forEach(function(action) {
+                const actionAnchor = "action-" + action.id.replace(/:/g, "-");
+                const actionLabel = action.metadata && action.metadata.action ? action.metadata.action : action.label;
+
+                const routes = graph.edges
+                  .filter(function(e) { return e.type === "routes_to" && e.target === action.id; })
+                  .map(function(e) { return graph.nodes.find(function(n) { return n.id === e.source; }); })
+                  .filter(function(n) { return n && n.type === "route"; });
+
+                const route = routes[0];
+                const method = route && route.metadata ? (route.metadata.method || "GET").toUpperCase() : "";
+                const path = route && route.metadata ? (route.metadata.path || "") : "";
+
+                const docs = graph.edges
+                  .filter(function(e) { return e.type === "documents" && e.target === action.id; })
+                  .map(function(e) { return graph.nodes.find(function(n) { return n.id === e.source; }); })
+                  .filter(function(n) { return n && n.type === "doc"; });
+
+                const doc = docs[0];
+                const summary = doc && doc.label ? doc.label : (action.metadata && action.metadata.summary ? action.metadata.summary : "");
+                const status = action.status || "undocumented";
+                const isDocumented = status === "documented";
+
+                /* The heading is a proper definition; the raw action name becomes a kicker. */
+                const definition = endpointTitle(action, controller.label, summary);
+                const methodColor = METHOD_COLORS[method] || "var(--haze)";
+                const statusColor = isDocumented ? "var(--success)" : "var(--warning)";
+
+                /* Sidebar: definition as the link text, method as a trailing chip.
+                   Carries data-action so a click also opens the detail panel. */
+                sidebarHtml += '<a class="stripe-sidebar-item" href="#' + actionAnchor + '" data-action="' + esc(action.id) + '">';
+                sidebarHtml += '  <span class="stripe-sidebar-label">' + esc(definition) + '</span>';
+                if (method) {
+                  sidebarHtml += '  <span class="stripe-sidebar-badge" style="background:' + methodColor + '20;color:' + methodColor + '">' + method + '</span>';
+                }
+                sidebarHtml += '</a>';
+
+                contentHtml += '<article class="stripe-endpoint-card" id="' + actionAnchor + '" data-action="' + esc(action.id) + '">';
+                contentHtml += '  <div class="stripe-endpoint-header">';
+                contentHtml += '    <div class="stripe-endpoint-title-wrap">';
+                contentHtml += '      <div class="stripe-endpoint-kicker"><span class="mono">' + esc(actionLabel) + '</span>';
+                contentHtml += '        <span class="action-doc-badge" style="background:' + statusColor + '15;color:' + statusColor + ';border-color:' + statusColor + '30">' + status + '</span>';
+                contentHtml += '      </div>';
+                contentHtml += '      <h3 class="stripe-endpoint-title">' + esc(definition) + '</h3>';
+                contentHtml += '    </div>';
+                contentHtml += '    <button class="stripe-endpoint-explain system-btn" type="button" data-action="' + esc(action.id) + '">View details</button>';
+                contentHtml += '  </div>';
+
+                if (method && path) {
+                  contentHtml += '  <div class="stripe-endpoint-meta">';
+                  contentHtml += '    <span class="stripe-endpoint-verb" style="color:' + methodColor + '">' + method + '</span>';
+                  contentHtml += '    <span class="stripe-endpoint-path">' + esc(path) + '</span>';
+                  contentHtml += '  </div>';
+                }
+
+                if (summary && summary !== definition) {
+                  contentHtml += '  <div class="stripe-endpoint-desc">' + esc(summary) + '</div>';
+                } else if (!summary) {
+                  contentHtml += '  <div class="stripe-endpoint-desc stripe-endpoint-desc--empty">No description provided yet. Add a Docit doc-block to this action to document it.</div>';
+                }
+
+                const relations = graph.edges
+                  .filter(function(e) { return e.source === action.id || e.source === controller.id; })
+                  .map(function(e) { return { edge: e, node: graph.nodes.find(function(n) { return n.id === e.target; }) }; })
+                  .filter(function(r) { return r.node && ["model", "service", "job", "mailer"].indexOf(r.node.type) !== -1; });
+
+                if (relations.length > 0) {
+                  contentHtml += '  <div class="stripe-relations-title">Interacts with</div>';
+                  contentHtml += '  <div class="stripe-relations-grid">';
+                  relations.forEach(function(rel) {
+                    const typeColor = TYPE_COLORS[rel.node.type] || "var(--haze)";
+                    const typeIcon = TYPE_ICON_SVG[rel.node.type] || "";
+                    contentHtml += '    <div class="stripe-relation-card" onclick="window.inspectNode(\\\'' + rel.node.id + '\\\')">';
+                    contentHtml += '      <div class="stripe-relation-icon" style="background:' + typeColor + '15;color:' + typeColor + ';border:1px solid ' + typeColor + '30">';
+                    contentHtml += '        <svg width="13" height="13" viewBox="0 0 16 16" style="color:' + typeColor + '">' + typeIcon + '</svg>';
+                    contentHtml += '      </div>';
+                    contentHtml += '      <div class="stripe-relation-text">';
+                    contentHtml += '        <span class="stripe-relation-name">' + esc(rel.node.label) + '</span>';
+                    contentHtml += '        <span class="stripe-relation-type">' + esc(rel.node.type) + '</span>';
+                    contentHtml += '      </div>';
+                    contentHtml += '    </div>';
+                  });
+                  contentHtml += '  </div>';
+                }
+
+                contentHtml += '</article>';
+              });
+
+              contentHtml += '</section>';
+              sidebarHtml += '</div>';
+            });
+
+            sidebar.innerHTML = sidebarHtml;
+            content.innerHTML = contentHtml;
+
+            const sidebarLinks = sidebar.querySelectorAll(".stripe-sidebar-item");
+            sidebarLinks.forEach(function(link) {
+              link.addEventListener("click", function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute("href").substring(1);
+                const targetEl = document.getElementById(targetId);
+                if (targetEl) {
+                  targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
+                  sidebarLinks.forEach(function(l) { l.classList.remove("active"); });
+                  this.classList.add("active");
+                }
+                /* Also open the endpoint's detail in the right panel. */
+                if (this.dataset.action) showEndpointDetail(this.dataset.action);
+              });
+            });
+
+            content.onscroll = function() {
+              const scrollPos = content.scrollTop + 60;
+              controllers.forEach(function(controller) {
+                const actions = graph.edges
+                  .filter(function(e) { return e.type === "contains" && e.source === controller.id; })
+                  .map(function(e) { return graph.nodes.find(function(n) { return n.id === e.target; }); })
+                  .filter(function(n) { return n && n.type === "action"; });
+
+                actions.forEach(function(action) {
+                  const actionAnchor = "action-" + action.id.replace(/:/g, "-");
+                  const el = document.getElementById(actionAnchor);
+                  if (el && el.offsetTop <= scrollPos && (el.offsetTop + el.offsetHeight) > scrollPos) {
+                    sidebarLinks.forEach(function(l) {
+                      if (l.getAttribute("href") === "#" + actionAnchor) {
+                        l.classList.add("active");
+                      } else {
+                        l.classList.remove("active");
+                      }
+                    });
+                  }
+                });
+              });
+            };
+          }
+
           })();
         JS
+      end
+
+      def self.json_escape(json_string)
+        json_string.to_s.gsub(/[&<>'\u2028\u2029]/, {
+          '&' => '\u0026',
+          '<' => '\u003c',
+          '>' => '\u003e',
+          "'" => '\u0027',
+          "\u2028" => '\u2028',
+          "\u2029" => '\u2029'
+        })
       end
     end
   end

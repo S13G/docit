@@ -21,7 +21,9 @@ module Docit
     end
 
     def system_spec
-      return render(json: { error: "System graph disabled" }, status: :not_found) unless Docit.configuration.system_graph_enabled
+      unless Docit.configuration.system_graph_enabled
+        return render(json: { error: "System graph disabled" }, status: :not_found)
+      end
 
       RouteInspector.eager_load_controllers!
       render json: SystemGraph::Generator.generate
@@ -29,7 +31,11 @@ module Docit
 
     def system_insights
       graph = system_graph
-      insight = Ai::SystemInsightGenerator.new(graph: graph, selected_node_ids: selected_node_ids).generate
+      insight = Ai::SystemInsightGenerator.new(
+        graph: graph,
+        selected_node_ids: selected_node_ids,
+        mode: insight_mode
+      ).generate
       render json: { insight: insight }
     rescue Docit::Error => e
       render json: { error: e.message }, status: :unprocessable_entity
@@ -65,6 +71,12 @@ module Docit
 
     def selected_node_ids
       params.fetch(:node_ids, "").to_s.split(",").reject(&:empty?)
+    end
+
+    # Validate at the boundary: only the known modes are honored, anything
+    # else falls back to the safe per-node default.
+    def insight_mode
+      params[:mode].to_s == "section" ? :section : :nodes
     end
 
     def spec_url

@@ -5,9 +5,12 @@ require "json"
 module Docit
   module Ai
     class SystemInsightGenerator
-      def initialize(graph:, selected_node_ids: [])
+      # mode: :nodes  -> explain an arbitrary selection (diagram "AI Explain")
+      #       :section -> explain one resource and how its endpoints work together
+      def initialize(graph:, selected_node_ids: [], mode: :nodes)
         @graph = graph
         @selected_node_ids = selected_node_ids
+        @mode = mode
       end
 
       def generate
@@ -17,57 +20,64 @@ module Docit
 
       private
 
-      attr_reader :graph, :selected_node_ids
+      attr_reader :graph, :selected_node_ids, :mode
 
       def prompt
-        <<~PROMPT
-          You are a senior engineer explaining a Rails system architecture to a junior developer who is seeing this codebase for the first time. Your goal is to make them feel confident and informed.
+        mode == :section ? section_prompt : nodes_prompt
+      end
 
-          IMPORTANT RULES:
-          - Use simple, everyday language. Avoid jargon unless you define it first.
-          - Be specific — reference actual controller names, model names, and endpoints from the graph.
-          - If a relationship is only likely (not confirmed by an edge), say "likely" and explain your reasoning.
-          - Use ONLY facts from the provided graph JSON. Do not invent components.
+      def nodes_prompt
+        <<~PROMPT
+          You are a senior engineer explaining a Rails system architecture to a developer. Keep your explanation extremely concise, professional, and clear. Avoid fluff, unnecessary details, or general tutorial information. Focus only on the provided components.
 
           FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
 
           ## Overview
-          A 2-3 sentence plain-English summary of what this part of the system does. Think of it as explaining to a friend what this code is for.
+          A 1-2 sentence plain-English summary of what this component/action does.
 
-          ## How It Works (Step by Step)
-          Walk through the request/data flow as numbered steps:
-          1. A user/client sends a request to [endpoint]
-          2. Rails routes it to [controller#action]
-          3. The action does [what it does]
-          ...continue until the response is sent back.
+          ## Data Flow
+          Show a simple, linear flow diagram using text and arrows (→). Keep it to 1 line if possible.
+          Example:
+            Client → GET /api/v1/users → UsersController#index → queries User model
 
-          ## Component Breakdown
-          For each selected component:
-          - **ComponentName** (type): What it does in plain English. Why it exists.
+          ## Connections & Interactions
+          List only the direct, relevant relationships from the graph (max 3 bullets):
+          - **Component** (type): Action details/purpose.
 
-          ## Relationships & Connections
-          Explain which components talk to each other and why:
-          - ComponentA → ComponentB: Why this connection exists
-          - ComponentC → ComponentD: What data flows between them
-
-          ## Watch Out For
-          List anything a junior engineer should be careful about:
-          - Missing documentation
-          - Complex relationships
-          - Potential gotchas
-
-          ## Request Flow
-          Show the flow using plain text arrows. For example:
-            Client → GET /api/v1/users
-              → UsersController#index
-              → queries User model
-              → returns 200 JSON response
-
-          Keep it simple and linear. Do NOT use Mermaid or any diagram syntax. Just plain indented text with → arrows.
+          Do not invent or assume anything outside of the provided graph. Keep the total response under 150 words.
 
           ---
 
           Selected node ids:
+          #{selected_node_ids.join("\n")}
+
+          Graph JSON:
+          #{JSON.pretty_generate(compact_graph)}
+        PROMPT
+      end
+
+      def section_prompt
+        <<~PROMPT
+          You are a senior engineer writing the introduction to a section of API documentation. The section covers ONE resource and all of its endpoints. Explain, for a developer new to this codebase, what the resource is for and how its endpoints work together as a workflow.
+
+          Use the documented summaries where available. Where an endpoint has no documentation, infer cautiously from its HTTP method and path, and do not fabricate behavior.
+
+          FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+
+          ## What this section does
+          1-2 sentences on the resource and its overall purpose.
+
+          ## How the endpoints work together
+          A short narrative (2-4 sentences) describing the typical flow across these endpoints — e.g. how a client lists, creates, then updates this resource. Reference endpoints by their HTTP method and path.
+
+          ## Notes
+          Up to 2 bullets on related models/services or anything a consumer must know. Omit this section if there is nothing concrete to say.
+
+          Do not invent endpoints, fields, or behavior not present in the graph. Keep the total response under 180 words.
+
+          ---
+
+          Endpoint node ids in this section:
           #{selected_node_ids.join("\n")}
 
           Graph JSON:

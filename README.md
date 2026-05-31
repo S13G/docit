@@ -11,6 +11,8 @@ Decorator-style API documentation for Ruby on Rails. Write OpenAPI 3.0.3 docs wi
 ### Swagger
 ![Swagger UI](docs/images/swagger_image.png)
 
+> **Full documentation:** [doc-it.dev/docs](https://doc-it.dev/docs)
+
 ## Table Of Contents
 
 - Getting started
@@ -39,6 +41,7 @@ Decorator-style API documentation for Ruby on Rails. Write OpenAPI 3.0.3 docs wi
   - [What the AI generates](#what-the-ai-generates)
 - Runtime and development
   - [Documentation UIs](#documentation-uis)
+  - [System Map](#system-map)
   - [How it works](#how-it-works)
   - [Mounting at a different path](#mounting-at-a-different-path)
   - [JSON spec only](#json-spec-only)
@@ -105,6 +108,15 @@ Docit.configure do |config|
   config.server "https://api.example.com", description: "Production"
   config.server "https://staging.example.com", description: "Staging"
   config.server "http://localhost:3000", description: "Development"
+
+  # License information:
+  config.license name: "MIT", url: "https://opensource.org/licenses/MIT"
+
+  # Contact information:
+  config.contact name: "API Team", email: "api@example.com", url: "https://example.com/support"
+
+  # Terms of service:
+  config.terms_of_service "https://example.com/tos"
 end
 ```
 
@@ -114,11 +126,11 @@ Docit supports two styles for documenting endpoints. Choose whichever fits your 
 
 ### Style 1: Inline (simple APIs)
 
-Add `swagger_doc` blocks directly in your controller:
+Add `doc_for` blocks directly in your controller:
 
 ```ruby
 class Api::V1::UsersController < ApplicationController
-  swagger_doc :index do
+  doc_for :index do
     summary "List all users"
     tags "Users"
     response 200, "Users retrieved"
@@ -128,6 +140,8 @@ class Api::V1::UsersController < ApplicationController
   end
 end
 ```
+
+> **Upgrading?** The previous `swagger_doc` method still works as an alias for `doc_for`, so existing code won't break.
 
 ### Style 2: Separate doc files (recommended for larger APIs)
 
@@ -189,13 +203,13 @@ class Api::V1::UsersController < ApplicationController
 end
 ```
 
-You can also mix both styles — use `use_docs` for most actions and add inline `swagger_doc` for one-offs:
+You can also mix both styles — use `use_docs` for most actions and add inline `doc_for` for one-offs:
 
 ```ruby
 class Api::V1::UsersController < ApplicationController
   use_docs Api::V1::UsersDocs        # loads :index and :create from doc file
 
-  swagger_doc :destroy do             # inline doc for this one action
+  doc_for :destroy do             # inline doc for this one action
     summary "Delete user"
     tags "Users"
     response 204, "Deleted"
@@ -209,12 +223,12 @@ end
 
 ### Endpoint documentation DSL
 
-The following examples work in both `swagger_doc` blocks and `doc` blocks.
+The following examples work in both `doc_for` blocks and `doc` blocks.
 
 ### Request bodies
 
 ```ruby
-swagger_doc :create do
+doc_for :create do
   summary "Create a user"
   tags "Users"
 
@@ -247,7 +261,7 @@ end
 ### Path parameters
 
 ```ruby
-swagger_doc :show do
+doc_for :show do
   summary "Get a user"
   tags "Users"
 
@@ -271,7 +285,7 @@ end
 ### Enums
 
 ```ruby
-swagger_doc :index do
+doc_for :index do
   summary "List orders"
   tags "Orders"
 
@@ -293,7 +307,7 @@ end
 Mark endpoints as requiring authentication:
 
 ```ruby
-swagger_doc :destroy do
+doc_for :destroy do
   summary "Delete a user"
   tags "Users"
   security :bearer_auth      # references the scheme from your config
@@ -306,7 +320,7 @@ end
 ### Deprecated endpoints
 
 ```ruby
-swagger_doc :legacy_search do
+doc_for :legacy_search do
   summary "Search (legacy)"
   tags "Search"
   deprecated
@@ -373,7 +387,7 @@ end
 Reference them in any endpoint with `schema ref:`:
 
 ```ruby
-swagger_doc :show do
+doc_for :show do
   summary "Get user"
   tags "Users"
 
@@ -386,7 +400,7 @@ swagger_doc :show do
   end
 end
 
-swagger_doc :create do
+doc_for :create do
   summary "Create user"
   tags "Users"
 
@@ -407,7 +421,7 @@ This outputs `$ref: '#/components/schemas/User'` in the spec — Swagger UI reso
 Use `type: :file` with `content_type: "multipart/form-data"` for file upload endpoints:
 
 ```ruby
-swagger_doc :upload_avatar do
+doc_for :upload_avatar do
   summary "Upload avatar"
   tags "Users"
 
@@ -486,15 +500,28 @@ Docit ships with two documentation UIs, both reading from the same OpenAPI spec:
 | `/api-docs` | Default (Scalar) | Configurable via `config.default_ui` |
 | `/api-docs/scalar` | Scalar API Reference | Modern UI with built-in API client, dark mode, code samples |
 | `/api-docs/swagger` | Swagger UI | Classic OpenAPI explorer |
+| `/api-docs/system` | System Map | Local architecture graph for routes, controllers, docs coverage, and app structure |
 | `/api-docs/spec` | Raw JSON | OpenAPI 3.0.3 spec |
 
 Both UIs include a navigation bar to switch between them. Set `config.default_ui = :swagger` to make Swagger the default at `/api-docs`.
 
+## System Map
+
+Docit includes a local system map for understanding how your Rails API fits together. It builds a **deterministic** graph from Rails routes, controller actions, Docit docs, schemas, models, and source references — no external service is required to view it.
+
+Visit `/api-docs/system` to open it. It has two views, a light/dark theme toggle, and PNG export:
+
+- **Diagram** — an interactive architecture graph. Drag nodes to rearrange, scroll to zoom, and click a node to inspect its connections (its neighbours highlight while the rest fade back). Filter to a single resource with the section dropdown, or press `/` to search nodes.
+- **Docs** — a request/response reference grouped by resource. Each endpoint shows a human-readable title, its method and path, parameters, request body, and responses, drawn from your Docit docs. A coverage indicator shows how many endpoints in each section are documented.
+
+If you have an AI provider configured, the Docs view's **Explain section** button summarises how a resource's endpoints work together. It warns before running on sections with undocumented endpoints, so documenting first gives a better result.
+
 ## How it works
 
-1. `swagger_doc` registers an **Operation** for each controller action in a global **Registry**
+1. `doc_for` registers an **Operation** for each controller action in a global **Registry**
 2. When someone visits `/api-docs/spec`, Docit's **SchemaGenerator** combines all registered operations with your Rails routes (via **RouteInspector**) to produce an OpenAPI 3.0.3 JSON document
 3. The **Engine** serves the configured documentation UI at `/api-docs`, pointing it at the generated spec
+4. The **SystemGraph** builds a local architecture graph for `/api-docs/system`
 
 The DSL is included in all controllers automatically via a Rails Engine initializer — no manual `include` needed if you're using `ActionController::API` or `ActionController::Base`.
 

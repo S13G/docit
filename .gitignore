@@ -23,3 +23,8 @@ spec/dummy/tmp/
 .docit_ai.yml
 spec/dummy/.docit_ai.yml
 spec/dummy/config/master.key
+.DS_Store
+.cursor/
+
+# Internal planning docs — not shipped in the gem
+docs/free-v1-system-design-plan.md
