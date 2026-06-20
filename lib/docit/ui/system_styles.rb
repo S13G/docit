@@ -68,10 +68,10 @@ module Docit
           button, input, select { font: inherit; }
 
           /* Inline icon alignment — SVG glyphs sit centered on the text baseline. */
-          .btn-icon, .tip-icon, .welcome-icon, .detail-ai-head svg {
+          .btn-icon, .tip-icon, .welcome-icon {
             display: inline-flex; align-items: center; justify-content: center;
           }
-          .btn-icon svg, .detail-ai-head svg { vertical-align: middle; }
+          .btn-icon svg { vertical-align: middle; }
 
           /* Shell */
           .system-shell { display: grid; grid-template-rows: auto 1fr; height: calc(100vh - 37px); min-height: 640px; }
@@ -394,17 +394,9 @@ module Docit
             font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 999px;
             border: 1px solid; white-space: nowrap;
           }
-          .stripe-explain-btn {
-            display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
-            border: 1px solid rgba(124,77,219,.35); border-radius: 8px;
-            background: var(--bg-card); color: var(--dusk); font-size: 12px; font-weight: 600;
-            cursor: pointer; transition: background 120ms ease, border-color 120ms ease;
-          }
-          .stripe-explain-btn:hover { background: var(--bg-option-hover); border-color: var(--dusk); }
 
           /* ───────── Right-hand detail panel ─────────
-             Fills the third column: endpoint request/response on click, or the
-             AI section explanation from "Explain section". */
+             Fills the third column: endpoint request/response on click. */
           .stripe-detail {
             position: relative; border-left: 1px solid var(--border); background: var(--bg-panel);
             overflow-y: auto; height: 100%; min-height: 0;
@@ -477,14 +469,6 @@ module Docit
           .detail-response-head { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
           .detail-response-desc { font-size: 12px; color: var(--smoke); line-height: 1.45; }
 
-          /* AI explanation inside the panel */
-          .detail-ai-head {
-            display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700;
-            color: var(--dusk); margin-bottom: 12px;
-          }
-          .detail-ai-body { font-size: 13px; line-height: 1.65; color: var(--smoke); }
-          .detail-ai-body strong { color: var(--text); }
-          .detail-loading { color: var(--haze); font-style: italic; font-size: 13px; }
           .detail-error { color: var(--warning); font-size: 13px; line-height: 1.5; }
 
           /* Slide-over drawer on narrow screens */

@@ -3,7 +3,7 @@
 module Docit
   module UI
     module SystemScript
-      def self.javascript(graph_url:, insights_url:)
+      def self.javascript(graph_url:)
         <<~JS
           (function() {
           "use strict";
@@ -11,7 +11,6 @@ module Docit
           /* ───────────────────────── Configuration ───────────────────────── */
 
           const graphUrl  = #{json_escape(JSON.generate(graph_url))};
-          const insightsUrl = #{json_escape(JSON.generate(insights_url))};
 
           const TYPE_COLORS = {
             route:      "#4da6ff",
@@ -110,7 +109,6 @@ module Docit
             return '<svg width="' + s + '" height="' + s + '" viewBox="0 0 16 16" fill="none" stroke="currentColor" ' +
               'stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">' + paths + '</svg>';
           }
-          const ICON_SPARKLE = '<path d="M8 1.5l1.6 4.3 4.4 1.6-4.4 1.6L8 13.4 6.4 9 2 7.4l4.4-1.6L8 1.5z"/>';
           const ICON_CLICK   = '<path d="M6 7V3.5a1.2 1.2 0 0 1 2.4 0V7m0-1.2a1.2 1.2 0 0 1 2.4 0V7m0-.6a1.2 1.2 0 0 1 2.4 0v3.2a4 4 0 0 1-4 4H9a4 4 0 0 1-3.3-1.7L3.5 8.8a1.2 1.2 0 0 1 2-1.3L6 8"/>';
           const ICON_DRAG    = '<path d="M3 8h10M8 3l5 5-5 5M3 8l5-5M3 8l5 5"/>';
           const ICON_SEARCH  = '<circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3"/>';
@@ -694,33 +692,6 @@ module Docit
             render();
           }
 
-          function formatMarkdown(text) {
-            return text
-              /* Mermaid blocks — label them clearly and show as readable code */
-              .replace(/```mermaid[\\s\\S]*?```/g, function(block) {
-                var code = block.replace(/```mermaid\\n?/, "").replace(/```$/, "").trim();
-                return '<div style="margin:10px 0">' +
-                  '<div style="font-size:10px;color:var(--haze);font-family:monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Flow diagram</div>' +
-                  '<pre style="background:var(--bg-code);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:11px;color:var(--smoke);overflow-x:auto;line-height:1.6">' + esc(code) + '</pre>' +
-                '</div>';
-              })
-              /* Generic code blocks */
-              .replace(/```[\\s\\S]*?```/g, function(block) {
-                var code = block.replace(/```\\w*\\n?/, "").replace(/```$/, "").trim();
-                return '<pre style="background:var(--bg-code);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;color:var(--smoke);overflow-x:auto">' + esc(code) + '</pre>';
-              })
-              .replace(/\\*\\*(.+?)\\*\\*/g, '<strong style="color:var(--text)">$1</strong>')
-              .replace(/`([^`]+)`/g, '<code style="background:var(--bg-code);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-size:11px;color:var(--smoke)">$1</code>')
-              /* Bullet lists — ember accent bar instead of purple */
-              .replace(/^- (.+)$/gm, '<div style="padding:3px 0 3px 12px;border-left:2px solid rgba(245,121,58,.35);margin:4px 0;color:var(--smoke)">$1</div>')
-              /* Numbered lists — ember number instead of purple */
-              .replace(/^(\\d+)\\. (.+)$/gm, '<div style="display:flex;gap:8px;padding:3px 0;margin:4px 0"><span style="color:var(--ember);font-weight:600;font-size:11px;min-width:18px">$1.</span><span style="color:var(--smoke)">$2</span></div>')
-              /* Inline arrows — keep readable */
-              .replace(/\\u2192|\\u2194|\\->/g, '<span style="color:var(--ember)">&rarr;</span>')
-              .replace(/\\n\\n/g, '<br>')
-              .replace(/\\n/g, ' ');
-          }
-
           /* ───────────────────────── Node Detail Panel ───────────────────────── */
 
           function showNodeDetail(id) {
@@ -1214,57 +1185,11 @@ module Docit
             return '<div class="detail-section"><div class="detail-section-title">Responses</div>' + rows + '</div>';
           }
 
-          /* Render the AI section explanation into the panel. The
-             undocumented-endpoint warning is handled by the caller. */
-          function showSectionExplain(controllerId) {
-            var ids = sectionActionIds(controllerId);
-            var controller = graph.nodes.find(function(n) { return n.id === controllerId; });
-            var sectionName = controller ? resourceName(controller.label).plural : "Section";
-
-            if (ids.length === 0) {
-              openDetailPanel('<div class="detail-kicker">Section</div><h2 class="detail-title">' + esc(sectionName) +
-                '</h2><div class="detail-error">No endpoints to explain in this section.</div>');
-              return;
-            }
-
-            openDetailPanel('<div class="detail-kicker">Section</div><h2 class="detail-title">' + esc(sectionName) + '</h2>' +
-              '<div class="detail-ai-head">' + lineIcon(ICON_SPARKLE) + ' How this section works</div>' +
-              '<div class="detail-loading">Generating explanation…</div>');
-
-            var url = insightsUrl + "?mode=section&node_ids=" + encodeURIComponent(ids.join(","));
-            fetch(url)
-              .then(function(r) { return r.json(); })
-              .then(function(data) {
-                if (data.error) throw new Error(data.error);
-                openDetailPanel('<div class="detail-kicker">Section</div><h2 class="detail-title">' + esc(sectionName) + '</h2>' +
-                  '<div class="detail-ai-head">' + lineIcon(ICON_SPARKLE) + ' How this section works</div>' +
-                  '<div class="detail-ai-body">' + formatMarkdown(data.insight) + '</div>');
-              })
-              .catch(function(err) {
-                openDetailPanel('<div class="detail-kicker">Section</div><h2 class="detail-title">' + esc(sectionName) + '</h2>' +
-                  '<div class="detail-error">Explanation unavailable: ' + esc(err.message) +
-                  '<br>Run <span class="mono">rails generate docit:ai_setup</span> to configure an AI provider.</div>');
-              });
-          }
-
-          /* One-time delegation on the docs content: section Explain + endpoint clicks. */
+          /* One-time delegation on the docs content: endpoint clicks. */
           (function bindDocsInteractions() {
             var content = $("stripe-content");
             if (!content) return;
             content.addEventListener("click", function(e) {
-              var sectionBtn = e.target.closest(".stripe-explain-btn");
-              if (sectionBtn) {
-                /* Gate: warn before spending tokens on a thinly-documented section. */
-                if (sectionBtn.dataset.fulldoc !== "1") {
-                  var ok = window.confirm(
-                    sectionBtn.dataset.undoc + " endpoint(s) in this section are undocumented.\\n\\n" +
-                    "The explanation may be weak and will use more tokens. For the best result, " +
-                    "document these endpoints first.\\n\\nGenerate anyway?");
-                  if (!ok) return;
-                }
-                showSectionExplain(sectionBtn.dataset.section);
-                return;
-              }
               /* Relation cards have their own behavior (jump to the diagram). */
               if (e.target.closest(".stripe-relation-card")) return;
               /* A click on an endpoint card (or its View details button) opens
@@ -1309,15 +1234,14 @@ module Docit
               if (actions.length === 0) return;
 
               const controllerAnchor = "controller-" + controller.id.replace(/:/g, "-");
-              
+
               sidebarHtml += '<div class="stripe-sidebar-group">';
               sidebarHtml += '<div class="stripe-sidebar-heading">' + esc(controller.label.replace("Controller", "")) + '</div>';
 
               var res = resourceName(controller.label);
 
-              /* Documentation coverage drives both the badge and the AI gate:
-                 a fully-documented section gives the model real input; a thin
-                 one yields a weak explanation and still costs tokens. */
+              /* Documentation coverage badge: how many of the section's
+                 endpoints carry a Docit doc-block. */
               var documentedCount = actions.filter(function(a) { return a.status === "documented"; }).length;
               var totalCount = actions.length;
               var fullyDocumented = documentedCount === totalCount;
@@ -1332,9 +1256,6 @@ module Docit
               contentHtml += '    <div class="stripe-controller-aside">';
               contentHtml += '      <span class="stripe-coverage" style="color:' + coverageColor + ';border-color:' + coverageColor + '40;background:' + coverageColor + '12">' +
                 documentedCount + '/' + totalCount + ' documented</span>';
-              contentHtml += '      <button class="stripe-explain-btn" type="button" ' +
-                'data-section="' + esc(controller.id) + '" data-fulldoc="' + (fullyDocumented ? "1" : "0") +
-                '" data-undoc="' + (totalCount - documentedCount) + '">Explain section</button>';
               contentHtml += '    </div>';
               contentHtml += '  </div>';
               contentHtml += '  <p class="stripe-controller-sub">' + actions.length + ' endpoint' + (actions.length === 1 ? '' : 's') +
@@ -1482,13 +1403,13 @@ module Docit
 
       def self.json_escape(json_string)
         json_string.to_s.gsub(/[&<>'\u2028\u2029]/, {
-          '&' => '\u0026',
-          '<' => '\u003c',
-          '>' => '\u003e',
-          "'" => '\u0027',
-          "\u2028" => '\u2028',
-          "\u2029" => '\u2029'
-        })
+                                "&" => '\u0026',
+                                "<" => '\u003c',
+                                ">" => '\u003e',
+                                "'" => '\u0027',
+                                "\u2028" => '\u2028',
+                                "\u2029" => '\u2029'
+                              })
       end
     end
   end

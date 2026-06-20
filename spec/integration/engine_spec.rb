@@ -16,10 +16,6 @@ RSpec.describe "Docit Engine Integration", type: :request do
   before do
     # Force-load the controllers so doc_for macros are available, then
     # re-register docs for test isolation after other specs clear the registry.
-    Api::V1::AuthController
-    Api::V1::UsersController
-    Api::V1::ProductsController
-    Api::V1::OrdersController
 
     Docit::Registry.clear!
     Docit.reset_configuration!
@@ -191,26 +187,11 @@ RSpec.describe "Docit Engine Integration", type: :request do
       expect(last_response.body).to include("System architecture diagram")
       expect(last_response.body).to include("/api-docs/system.json")
       expect(last_response.body).to include("Export PNG")
-      expect(last_response.body).to include("Connect")
-      expect(last_response.body).to include("AI Explain")
-      expect(last_response.body).to include("ai-generate-btn")
     end
 
     it "includes nav bar with links to existing UIs" do
       expect(last_response.body).to include('href="/api-docs/swagger"')
       expect(last_response.body).to include('href="/api-docs/scalar"')
-    end
-  end
-
-  describe "GET /api-docs/system/insights" do
-    it "returns a setup error when AI is not configured" do
-      allow(Docit::Ai::Configuration).to receive(:load)
-        .and_raise(Docit::Error, "AI not configured. Run: rails generate docit:ai_setup")
-
-      get "/api-docs/system/insights"
-
-      expect(last_response.status).to eq(422)
-      expect(JSON.parse(last_response.body)["error"]).to include("AI not configured")
     end
   end
 end

@@ -3,12 +3,11 @@
 module Docit
   module UI
     class BaseRenderer
-      attr_reader :spec_url, :system_url, :system_insights_url, :title, :nav_paths
+      attr_reader :spec_url, :system_url, :title, :nav_paths
 
-      def initialize(spec_url:, system_url: nil, system_insights_url: nil, nav_paths: {})
+      def initialize(spec_url:, system_url: nil, nav_paths: {})
         @spec_url = spec_url
         @system_url = system_url
-        @system_insights_url = system_insights_url
         @nav_paths = nav_paths
         @title = ERB::Util.html_escape(Docit.configuration.title)
       end
@@ -54,9 +53,9 @@ module Docit
           </style>
           <nav class="docit-nav">
             <span style="font-weight: 600; margin-right: auto;">#{title}</span>
-            <a href="#{ERB::Util.html_escape(nav_paths[:swagger])}" class="docit-nav-link #{'active' if swagger_active}">Swagger</a>
-            <a href="#{ERB::Util.html_escape(nav_paths[:scalar])}" class="docit-nav-link #{'active' if scalar_active}">Scalar</a>
-            <a href="#{ERB::Util.html_escape(nav_paths[:system])}" class="docit-nav-link #{'active' if system_active}">System</a>
+            <a href="#{ERB::Util.html_escape(nav_paths[:swagger])}" class="docit-nav-link #{"active" if swagger_active}">Swagger</a>
+            <a href="#{ERB::Util.html_escape(nav_paths[:scalar])}" class="docit-nav-link #{"active" if scalar_active}">Scalar</a>
+            <a href="#{ERB::Util.html_escape(nav_paths[:system])}" class="docit-nav-link #{"active" if system_active}">System</a>
           </nav>
         HTML
       end
@@ -69,19 +68,15 @@ module Docit
         json_escape(JSON.generate(system_url))
       end
 
-      def system_insights_url_json
-        json_escape(JSON.generate(system_insights_url))
-      end
-
       def json_escape(json_string)
         json_string.to_s.gsub(/[&<>'\u2028\u2029]/, {
-          '&' => '\u0026',
-          '<' => '\u003c',
-          '>' => '\u003e',
-          "'" => '\u0027',
-          "\u2028" => '\u2028',
-          "\u2029" => '\u2029'
-        })
+                                "&" => '\u0026',
+                                "<" => '\u003c',
+                                ">" => '\u003e',
+                                "'" => '\u0027',
+                                "\u2028" => '\u2028',
+                                "\u2029" => '\u2029'
+                              })
       end
     end
   end

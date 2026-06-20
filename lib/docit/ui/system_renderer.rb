@@ -94,7 +94,7 @@ module Docit
                         <div class="stripe-detail-empty-icon" aria-hidden="true">
                           <svg width="26" height="26" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 1.5h6L13 5v9.5H3z"/><path d="M9 1.5V5h4"/><path d="M5.5 8.5h5M5.5 11h3"/></svg>
                         </div>
-                        <p>Select an endpoint to see how to call it, or use <strong>Explain section</strong> for an AI overview.</p>
+                        <p>Select an endpoint to see how to call it.</p>
                       </div>
                     </div>
                   </aside>
@@ -103,7 +103,7 @@ module Docit
               </div>
             </div>
             <div id="toast" class="toast" role="status"></div>
-            <script>#{SystemScript.javascript(graph_url: system_url, insights_url: system_insights_url)}</script>
+            <script>#{SystemScript.javascript(graph_url: system_url)}</script>
           </body>
           </html>
         HTML
