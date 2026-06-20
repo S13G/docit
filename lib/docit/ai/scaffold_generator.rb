@@ -50,8 +50,10 @@ module Docit
 
         inject_tags(grouped)
 
+        endpoints = "endpoint".pluralize(gaps.length)
+        files = "file".pluralize(@files_written.length)
         @output.puts ""
-        @output.puts "Scaffolded #{gaps.length} endpoint#{"s" if gaps.length > 1} in #{@files_written.length} file#{"s" if @files_written.length > 1}."
+        @output.puts "Scaffolded #{gaps.length} #{endpoints} in #{@files_written.length} #{files}."
         @output.puts "Fill in the TODO placeholders in your doc files."
         @files_written
       end

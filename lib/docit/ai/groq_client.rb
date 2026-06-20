@@ -59,18 +59,14 @@ module Docit
 
       def parse_retry_after(response, message)
         # Check Retry-After header first (seconds)
-        if (header = response["Retry-After"])
-          return header.to_f if header.to_f > 0
+        if (header = response["Retry-After"]) && header.to_f.positive?
+          return header.to_f
         end
 
         # Parse "try again in XmY.Zs" from error message
-        if message =~ /(\d+)m([\d.]+)s/
-          return (Regexp.last_match(1).to_i * 60) + Regexp.last_match(2).to_f
-        end
+        return (Regexp.last_match(1).to_i * 60) + Regexp.last_match(2).to_f if message =~ /(\d+)m([\d.]+)s/
 
-        if message =~ /([\d.]+)s/
-          return Regexp.last_match(1).to_f
-        end
+        return Regexp.last_match(1).to_f if message =~ /([\d.]+)s/
 
         nil
       end

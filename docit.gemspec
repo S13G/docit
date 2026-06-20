@@ -9,7 +9,8 @@ Gem::Specification.new do |spec|
   spec.email = ["siegdomain1@gmail.com"]
 
   spec.summary = "Decorator-style OpenAPI documentation for Rails with inline DSL, doc modules, and AI-assisted scaffolding."
-  spec.description = "Write OpenAPI 3.0.3 documentation for Rails APIs with clean controller DSL macros, separate doc modules, and optional AI-assisted doc generation for undocumented endpoints."
+  spec.description = "Write OpenAPI 3.0.3 documentation for Rails APIs with clean controller DSL macros, " \
+                     "separate doc modules, and optional AI-assisted doc generation for undocumented endpoints."
   spec.homepage = "https://doc-it.dev"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2.0"

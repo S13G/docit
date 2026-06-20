@@ -1,8 +1,59 @@
 AllCops:
   TargetRubyVersion: 3.2
+  NewCops: disable
+  Exclude:
+    - "spec/dummy/**/*"
+    - "bin/**/*"
+    - "vendor/**/*"
 
 Style/StringLiterals:
   EnforcedStyle: double_quotes
 
 Style/StringLiteralsInInterpolation:
   EnforcedStyle: double_quotes
+
+# 120 forces awkward breaks in user-facing output strings and deep test
+# assertion chains; 140 keeps lines honest without mangling readable ones.
+Layout/LineLength:
+  Max: 140
+
+# False positive: each spec defines `def self.name` inside a *different*
+# anonymous Class.new block (to give the stub class a name). RuboCop flattens
+# them to ::Object.name and reports a collision that doesn't exist.
+Lint/DuplicateMethods:
+  Exclude:
+    - "spec/**/*"
+
+# A library gem documents its public API in the README and inline where the
+# logic is non-obvious, not with a mandatory comment on every class/module.
+Style/Documentation:
+  Enabled: false
+
+# The UI renderers (system_renderer/system_styles/system_script) and the schema
+# generator are intentionally long string-builders; size limits here would force
+# arbitrary splits that hurt, not help, readability.
+Metrics/MethodLength:
+  Max: 55
+Metrics/AbcSize:
+  Max: 55
+Metrics/CyclomaticComplexity:
+  Max: 20
+Metrics/PerceivedComplexity:
+  Max: 20
+Metrics/ClassLength:
+  Max: 250
+Metrics/ModuleLength:
+  Enabled: false
+# The builder DSL methods (property/parameter) legitimately take many optional
+# keyword args mirroring OpenAPI fields.
+Metrics/ParameterLists:
+  Max: 10
+
+# RSpec describe/context blocks and the UI string-builder modules are naturally
+# long; the line-count metric is noise there. Elsewhere the builder/analyzer
+# loops run a bit past the 25-line default but stay cohesive.
+Metrics/BlockLength:
+  Max: 45
+  Exclude:
+    - "spec/**/*"
+    - "lib/docit/ui/**/*"

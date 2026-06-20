@@ -57,9 +57,7 @@ module Docit
         end
 
         initializer = Rails.root.join("config", "initializers", "docit.rb")
-        if File.exist?(initializer) == false
-          raise Docit::Error, "Docit is not installed. Run: rails generate docit:install"
-        end
+        raise Docit::Error, "Docit is not installed. Run: rails generate docit:install" if File.exist?(initializer) == false
 
         routes_file = Rails.root.join("config", "routes.rb")
         return unless File.exist?(routes_file) && !File.read(routes_file).include?("Docit::Engine")
@@ -179,8 +177,15 @@ module Docit
           end
         end
 
+        endpoints = pluralize(@results[:generated], "endpoint")
+        files = pluralize(@results[:files].length, "file")
         @output.puts ""
-        @output.puts "Generated docs for #{@results[:generated]} endpoint#{"s" if @results[:generated] > 1} in #{@results[:files].length} file#{"s" if @results[:files].length > 1}."
+        @output.puts "Generated docs for #{endpoints} in #{files}."
+      end
+
+      # "1 endpoint" / "2 endpoints" — keeps the summary lines short and readable.
+      def pluralize(count, noun)
+        "#{count} #{noun}#{"s" unless count == 1}"
       end
 
       def inject_tags(generated)

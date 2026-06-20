@@ -24,7 +24,7 @@ module Docit
         insertion_point = find_insertion_point(content)
         return [] if insertion_point.nil?
 
-        content = content.insert(insertion_point, "\n#{lines.join("\n")}")
+        content.insert(insertion_point, "\n#{lines.join("\n")}")
         File.write(initializer_path, content)
 
         new_tags

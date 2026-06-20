@@ -27,9 +27,7 @@ module Docit
 
     def default_ui=(value)
       ui = value.to_sym
-      unless SUPPORTED_UIS.include?(ui)
-        raise ArgumentError, "Unsupported UI: #{value}. Must be one of: #{SUPPORTED_UIS.join(", ")}"
-      end
+      raise ArgumentError, "Unsupported UI: #{value}. Must be one of: #{SUPPORTED_UIS.join(", ")}" unless SUPPORTED_UIS.include?(ui)
 
       @default_ui = ui
     end

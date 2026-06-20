@@ -20,7 +20,7 @@ module Docit
       end
 
       def doc_module_name
-        @controller_name.delete_suffix("Controller").gsub("::", "::") + "Docs"
+        "#{@controller_name.delete_suffix("Controller").gsub("::", "::")}Docs"
       end
 
       def file_exists?
@@ -44,7 +44,7 @@ module Docit
         match = content.match(class_pattern)
         return false if match.nil?
 
-        indent = match[1][/^\s*/] + "  "
+        indent = "#{match[1][/^\s*/]}  "
         use_docs_line = "#{indent}use_docs #{doc_module_name}\n"
         content = content.sub(class_pattern, "\\1\n#{use_docs_line}")
 
@@ -100,7 +100,7 @@ module Docit
           lines << "#{"  " * (@module_parts.length - 1 - i)}end"
         end
 
-        lines.join("\n") + "\n"
+        "#{lines.join("\n")}\n"
       end
 
       def indent_block(block, depth)

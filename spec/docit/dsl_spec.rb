@@ -55,7 +55,7 @@ RSpec.describe Docit::DSL do
 
   describe "swagger_doc backward compatibility" do
     it "still works as an alias for doc_for" do
-      klass = Class.new do
+      Class.new do
         include Docit::DSL
         def self.name = "Api::V1::LegacyController"
 
@@ -65,8 +65,6 @@ RSpec.describe Docit::DSL do
           response 200, "OK"
         end
       end
-
-      klass # trigger evaluation
       op = Docit::Registry.find(controller: "Api::V1::LegacyController", action: "index")
       expect(op).not_to be_nil
       expect(op._summary).to eq("Legacy endpoint")
