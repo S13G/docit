@@ -38,10 +38,12 @@ module Api
           property :name, type: :string, required: true, example: "New Product"
           property :price, type: :number, required: true, example: 19.99
           property :category, type: :string, required: true, example: "electronics"
+          property :description, type: :string, nullable: true, example: "Optional details"
+          property :in_stock, type: :boolean, default: true
         end
 
         response 201, "Product created successfully" do
-          property :id, type: :string, example: "123e4567-e89b-12d3-a456-426614174000"
+          property :id, type: :integer, read_only: true, example: 1
           property :name, type: :string, example: "New Product"
           property :price, type: :number, example: 19.99
           property :category, type: :string, example: "electronics"

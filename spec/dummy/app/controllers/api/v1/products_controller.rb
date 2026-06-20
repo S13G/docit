@@ -6,48 +6,64 @@ module Api
       use_docs Api::V1::ProductsDocs
 
       def index
+        products = Product.order(:id)
         render json: {
-          products: [
-            { id: 1, name: "Widget", price: 29.99, category: "tools", in_stock: true },
-            { id: 2, name: "Gadget", price: 49.99, category: "electronics", in_stock: false }
-          ],
-          total: 2,
-          page: params[:page] || 1
+          products: products.map { |product| product_json(product) },
+          total: products.count,
+          page: (params[:page] || 1).to_i
         }
       end
 
       def show
-        render json: {
-          id: params[:id],
-          name: "Widget",
-          description: "A useful widget",
-          price: 29.99,
-          category: "tools",
-          in_stock: true,
-          created_at: Time.current
-        }
+        product = Product.find_by(id: params[:id])
+        return render(json: { error: "Product not found" }, status: :not_found) unless product
+
+        render json: product_json(product).merge(
+          description: product.description,
+          created_at: product.created_at
+        )
       end
 
       def create
-        render json: {
-          id: SecureRandom.uuid,
-          name: params[:name],
-          price: params[:price],
-          category: params[:category]
-        }, status: :created
+        product = Product.new(product_params)
+        return render(json: { errors: product.errors.full_messages }, status: :unprocessable_entity) unless product.save
+
+        render json: product_json(product), status: :created
       end
 
       def update
-        render json: {
-          id: params[:id],
-          name: params[:name],
-          price: params[:price],
-          updated_at: Time.current
-        }
+        product = Product.find_by(id: params[:id])
+        return render(json: { error: "Product not found" }, status: :not_found) unless product
+
+        if product.update(product_params)
+          render json: product_json(product).merge(updated_at: product.updated_at)
+        else
+          render json: { errors: product.errors.full_messages }, status: :unprocessable_entity
+        end
       end
 
       def destroy
+        product = Product.find_by(id: params[:id])
+        return render(json: { error: "Product not found" }, status: :not_found) unless product
+
+        product.destroy
         head :no_content
+      end
+
+      private
+
+      def product_params
+        params.permit(:name, :description, :price, :category, :in_stock)
+      end
+
+      def product_json(product)
+        {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          category: product.category,
+          in_stock: product.in_stock
+        }
       end
     end
   end

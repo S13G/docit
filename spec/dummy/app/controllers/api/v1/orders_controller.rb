@@ -6,48 +6,46 @@ module Api
       use_docs Api::V1::OrdersDocs
 
       def index
+        orders = Order.order(:id)
         render json: {
-          orders: [
-            { id: 1, user_id: "abc-123", status: "pending", total: 79.98 }
-          ],
-          total: 1
+          orders: orders.map { |order| order_summary_json(order) },
+          total: orders.count
         }
       end
 
       def show
-        render json: {
-          id: params[:id],
-          user_id: "abc-123",
-          status: "shipped",
-          total: 79.98,
-          items: [
-            { product_id: 1, quantity: 2, unit_price: 29.99 },
-            { product_id: 2, quantity: 1, unit_price: 19.99 }
-          ],
-          shipping_address: {
-            street: "123 Main St",
-            city: "Springfield",
-            state: "IL",
-            zip: "62704"
-          },
-          created_at: Time.current
-        }
+        order = Order.includes(:order_items).find_by(id: params[:id])
+        return render(json: { error: "Order not found" }, status: :not_found) unless order
+
+        render json: order_summary_json(order).merge(
+          items: order.order_items.map { |item| item_json(item) },
+          created_at: order.created_at
+        )
       end
 
       def create
-        render json: {
-          id: SecureRandom.uuid,
-          status: "pending",
-          total: params[:total]
-        }, status: :created
+        order = Order.new(user_id: params[:user_id], total: params[:total] || 0)
+        return render(json: { errors: order.errors.full_messages }, status: :unprocessable_entity) unless order.save
+
+        render json: order_summary_json(order), status: :created
       end
 
       def cancel
-        render json: {
-          id: params[:id],
-          status: "cancelled",
-          cancelled_at: Time.current
-        }
+        order = Order.find_by(id: params[:id])
+        return render(json: { error: "Order not found" }, status: :not_found) unless order
+
+        order.cancel!
+        render json: order_summary_json(order).merge(cancelled_at: order.cancelled_at)
+      end
+
+      private
+
+      def order_summary_json(order)
+        { id: order.id, user_id: order.user_id, status: order.status, total: order.total }
+      end
+
+      def item_json(item)
+        { product_id: item.product_id, quantity: item.quantity, unit_price: item.unit_price }
       end
     end
   end
