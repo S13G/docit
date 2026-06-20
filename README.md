@@ -27,6 +27,8 @@ Decorator-style API documentation for Ruby on Rails. Write OpenAPI 3.0.3 docs wi
   - [Request bodies](#request-bodies)
   - [Path parameters](#path-parameters)
   - [Enums](#enums)
+  - [Property options](#property-options)
+  - [Response headers](#response-headers)
   - [Security](#security)
   - [Deprecated endpoints](#deprecated-endpoints)
   - [Nested objects and arrays](#nested-objects-and-arrays)
@@ -44,12 +46,14 @@ Decorator-style API documentation for Ruby on Rails. Write OpenAPI 3.0.3 docs wi
   - [System Map](#system-map)
   - [How it works](#how-it-works)
   - [Mounting at a different path](#mounting-at-a-different-path)
+  - [Restricting access in production](#restricting-access-in-production)
   - [JSON spec only](#json-spec-only)
   - [Development](#development)
   - [Contributing](#contributing)
   - [License](#license)
 - Project docs
   - [CHANGELOG](CHANGELOG.md)
+  - [TROUBLESHOOTING](TROUBLESHOOTING.md)
   - [CONTRIBUTING](CONTRIBUTING.md)
   - [CODE OF CONDUCT](CODE_OF_CONDUCT.md)
 
@@ -302,6 +306,37 @@ doc_for :index do
 end
 ```
 
+### Property options
+
+Any `property` (in a request body, response, or shared schema) accepts these OpenAPI 3.0.3 options:
+
+```ruby
+request_body required: true do
+  property :id,       type: :integer, read_only: true        # readOnly: present in responses, not accepted as input
+  property :password, type: :string,  write_only: true       # writeOnly: accepted as input, never returned
+  property :role,     type: :string,  default: "member"      # default value
+  property :nickname, type: :string,  nullable: true         # may be null
+  property :active,   type: :boolean, default: false         # falsy defaults are preserved
+end
+```
+
+These map to `readOnly`, `writeOnly`, `default`, and `nullable` in the generated spec.
+
+### Response headers
+
+Document the headers a response returns with `header` inside a `response` block:
+
+```ruby
+response 200, "Orders list" do
+  header "X-Total-Count", type: :integer, description: "Total orders available"
+  header "X-RateLimit-Remaining", type: :integer, description: "Requests left in the window"
+
+  property :orders, type: :array do
+    property :id, type: :integer
+  end
+end
+```
+
 ### Security
 
 Mark endpoints as requiring authentication:
@@ -532,6 +567,34 @@ In `config/routes.rb`:
 ```ruby
 mount Docit::Engine => "/docs"        # now at /docs instead of /api-docs
 ```
+
+## Restricting access in production
+
+The Docit endpoints (`/api-docs`, `/api-docs/spec`, `/api-docs/system`, `/api-docs/system.json`) are **unauthenticated by default** and expose your full API surface, the OpenAPI spec, and — for the System Map — your app's structure and source file paths. That is convenient in development, but in production you almost always want to gate them.
+
+Mount the engine inside an authenticated constraint, or behind whatever auth your app already uses:
+
+```ruby
+# config/routes.rb
+
+# Option A — only mount outside production
+mount Docit::Engine => "/api-docs" unless Rails.env.production?
+
+# Option B — gate behind an authenticated constraint (e.g. Devise admins)
+authenticate :user, ->(u) { u.admin? } do
+  mount Docit::Engine => "/api-docs"
+end
+
+# Option C — HTTP Basic auth via a Rack constraint
+admins_only = ->(request) do
+  ActiveSupport::SecurityUtils.secure_compare(
+    request.authorization.to_s, ENV.fetch("DOCS_AUTH", "")
+  )
+end
+constraints(admins_only) { mount Docit::Engine => "/api-docs" }
+```
+
+If you disable the System Map specifically, set `config.system_graph_enabled = false` — `/api-docs/system.json` then returns `404`.
 
 ## JSON spec only
 

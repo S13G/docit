@@ -1,3 +1,18 @@
+## [0.6.0] - 2026-06-20
+
+### Added
+- Property options for richer schemas: `default`, `nullable`, `read_only`, and `write_only` on any `property` in a request body, response, or shared schema — emitted as OpenAPI `default`, `nullable`, `readOnly`, and `writeOnly`. Falsy values like `default: false` and `default: 0` are preserved
+- Response headers: declare them inside a `response` block with `header "X-RateLimit-Remaining", type: :integer, description: "..."`, emitted as an OpenAPI `headers` object on that response
+- System Map `uses_schema` edges: documented endpoints that reference a shared schema (`schema ref: :User`) are now linked to that schema node in the graph
+- `TROUBLESHOOTING.md` covering common questions (missing routes, ignored options, AI setup, production exposure)
+- README section on restricting access to the docs endpoints in production
+
+### Changed
+- README documents the new property options and response headers
+
+### Removed
+- The AI "Explain section" / system insights feature and its endpoint (`/api-docs/system/insights`). It was unauthenticated — exposing an outbound, billable AI call and rendering AI output without escaping — so it has been removed. The rest of the System Map (diagram, docs view, search, theming, PNG export) is unchanged, and `rails docit:autodoc` is unaffected
+
 ## [0.5.0] - 2026-05-31
 
 ### Added
