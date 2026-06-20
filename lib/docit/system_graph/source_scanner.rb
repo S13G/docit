@@ -41,8 +41,7 @@ module Docit
 
       private
 
-      attr_reader :root
-      attr_reader :excluded_paths
+      attr_reader :root, :excluded_paths
 
       def scan_dir(dir)
         full_dir = root.join(dir)
@@ -62,7 +61,7 @@ module Docit
       end
 
       def node_id(type, label)
-        "#{type}:#{label.underscore.tr('/', ':')}"
+        "#{type}:#{label.underscore.tr("/", ":")}"
       end
 
       def full_path(path)

@@ -6,7 +6,8 @@ RSpec.describe Docit::SystemGraph::Graph do
   it "serializes nodes, edges, and stats" do
     graph = described_class.new
     graph.add_node(Docit::SystemGraph::Node.new(id: "controller:users", type: "controller", label: "UsersController"))
-    graph.add_node(Docit::SystemGraph::Node.new(id: "action:users#index", type: "action", label: "UsersController#index"))
+    graph.add_node(Docit::SystemGraph::Node.new(id: "action:users#index", type: "action",
+                                                label: "UsersController#index"))
     graph.add_edge(Docit::SystemGraph::Edge.new(
                      id: "contains:users#index",
                      source: "controller:users",

@@ -16,6 +16,9 @@ module Docit
         add_schemas
         add_models
         add_source_nodes
+        # Runs last: Graph#add_edge drops edges to not-yet-created nodes, so
+        # schema-usage edges must be added after both doc and schema nodes exist.
+        add_schema_usage_edges
         graph
       end
 
@@ -110,6 +113,27 @@ module Docit
         graph.add_edge(edge(doc_id, action_id, "documents", "high", "Docit registry"))
       end
 
+      # Link each doc node to every shared schema it references via $ref (in its
+      # request body or any response). Runs as a final pass because add_edge only
+      # keeps edges whose endpoints already exist as nodes. Confidence is high —
+      # the references come straight from the Docit registry.
+      def add_schema_usage_edges
+        graph.nodes.values.select { |node| node.type == "doc" }.each do |doc|
+          operation = Registry.find(controller: doc.metadata[:controller], action: doc.metadata[:action])
+          next unless operation
+
+          schema_refs_for(operation).each do |ref|
+            graph.add_edge(edge(doc.id, node_id("schema", ref), "uses_schema", "high", "Docit registry $ref"))
+          end
+        end
+      end
+
+      def schema_refs_for(operation)
+        refs = [operation._request_body&.schema_ref]
+        operation._responses.each { |res| refs << res.schema_ref }
+        refs.compact.uniq
+      end
+
       def add_schemas
         Docit.schemas.each_key do |name|
           graph.add_node(Node.new(
@@ -147,7 +171,8 @@ module Docit
           target_id = node_id("model", target)
           next unless graph.nodes.key?(target_id)
 
-          graph.add_edge(edge(model_id, target_id, "association", "high", "ActiveRecord reflection: #{association.name}"))
+          graph.add_edge(edge(model_id, target_id, "association", "high",
+                              "ActiveRecord reflection: #{association.name}"))
         end
       end
 
@@ -156,12 +181,14 @@ module Docit
         source_nodes.each { |node| graph.add_node(node) }
 
         labels = graph.nodes.values.select { |node| %w[model service job mailer].include?(node.type) }.map(&:label)
-        graph.nodes.values.select { |node| %w[controller action service job mailer].include?(node.type) }.each do |source|
+        sources = graph.nodes.values.select { |node| %w[controller action service job mailer].include?(node.type) }
+        sources.each do |source|
           scanner.references_for(source.file, labels).each do |label|
             target = graph.nodes.values.find { |node| node.label == label }
             next unless target
 
-            graph.add_edge(edge(source.id, target.id, edge_type_for(target), "medium", "Constant reference in #{source.file}"))
+            graph.add_edge(edge(source.id, target.id, edge_type_for(target), "medium",
+                                "Constant reference in #{source.file}"))
           end
         end
       end
@@ -203,7 +230,7 @@ module Docit
       end
 
       def node_id(type, label)
-        "#{type}:#{label.to_s.underscore.tr('/', ':')}"
+        "#{type}:#{label.to_s.underscore.tr("/", ":")}"
       end
 
       def controller_file(controller)
