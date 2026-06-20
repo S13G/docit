@@ -135,7 +135,8 @@ RSpec.describe "Nested property support" do
     end
 
     it "generates array of objects with nested properties" do
-      users_prop = users_spec[:paths]["/api/v1/users"]["get"][:responses]["200"][:content]["application/json"][:schema][:properties]["users"]
+      users_schema = users_spec[:paths]["/api/v1/users"]["get"][:responses]["200"][:content]["application/json"][:schema]
+      users_prop = users_schema[:properties]["users"]
 
       expect(users_prop[:type]).to eq("array")
       expect(users_prop[:items][:type]).to eq("object")

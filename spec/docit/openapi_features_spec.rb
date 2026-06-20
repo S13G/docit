@@ -68,7 +68,7 @@ RSpec.describe "OpenAPI features" do
         property :email, type: :string
       end
 
-      controller = Class.new do
+      Class.new do
         include Docit::DSL
         def self.name = "UsersController"
 
@@ -93,7 +93,7 @@ RSpec.describe "OpenAPI features" do
         property :password, type: :string, required: true
       end
 
-      controller = Class.new do
+      Class.new do
         include Docit::DSL
         def self.name = "UsersController"
 
@@ -139,7 +139,7 @@ RSpec.describe "OpenAPI features" do
     end
 
     it "maps file type to string/binary in schema" do
-      controller = Class.new do
+      Class.new do
         include Docit::DSL
         def self.name = "UploadsController"
 
@@ -168,7 +168,7 @@ RSpec.describe "OpenAPI features" do
     end
 
     it "preserves required on the request body" do
-      controller = Class.new do
+      Class.new do
         include Docit::DSL
         def self.name = "UploadsController"
 
@@ -186,6 +186,76 @@ RSpec.describe "OpenAPI features" do
 
       expect(body[:required]).to be true
       expect(body[:content]["multipart/form-data"][:schema][:required]).to eq(["file"])
+    end
+  end
+
+  describe "Property options: default, nullable, readOnly, writeOnly" do
+    before do
+      allow(Docit::RouteInspector).to receive(:routes_for).and_return([])
+      allow(Docit::RouteInspector).to receive(:routes_for)
+        .with("AccountsController", "create")
+        .and_return([{ path: "/accounts", method: "post" }])
+    end
+
+    it "emits default, nullable, readOnly, and writeOnly on properties" do
+      Class.new do
+        include Docit::DSL
+        def self.name = "AccountsController"
+
+        doc_for :create do
+          request_body required: true do
+            property :id, type: :integer, read_only: true
+            property :password, type: :string, write_only: true
+            property :role, type: :string, default: "member"
+            property :nickname, type: :string, nullable: true
+            property :active, type: :boolean, default: false
+          end
+
+          response 201, "Created"
+        end
+      end
+
+      spec = Docit::SchemaGenerator.generate
+      props = spec[:paths]["/accounts"]["post"][:requestBody][:content]["application/json"][:schema][:properties]
+
+      expect(props["id"][:readOnly]).to be true
+      expect(props["password"][:writeOnly]).to be true
+      expect(props["role"][:default]).to eq("member")
+      expect(props["nickname"][:nullable]).to be true
+      # default: false is an explicit value, not "unset" — it must round-trip.
+      expect(props["active"][:default]).to be false
+    end
+  end
+
+  describe "Response headers" do
+    before do
+      allow(Docit::RouteInspector).to receive(:routes_for).and_return([])
+      allow(Docit::RouteInspector).to receive(:routes_for)
+        .with("UsersController", "index")
+        .and_return([{ path: "/users", method: "get" }])
+    end
+
+    it "emits declared response headers in OpenAPI form" do
+      Class.new do
+        include Docit::DSL
+        def self.name = "UsersController"
+
+        doc_for :index do
+          response 200, "OK" do
+            header "X-RateLimit-Remaining", type: :integer, description: "Calls left in the window"
+            header "X-Request-Id", example: "abc-123"
+          end
+        end
+      end
+
+      spec = Docit::SchemaGenerator.generate
+      headers = spec[:paths]["/users"]["get"][:responses]["200"][:headers]
+
+      expect(headers["X-RateLimit-Remaining"]).to eq({
+                                                       schema: { type: "integer" },
+                                                       description: "Calls left in the window"
+                                                     })
+      expect(headers["X-Request-Id"]).to eq({ schema: { type: "string", example: "abc-123" } })
     end
   end
 

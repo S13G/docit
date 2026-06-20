@@ -104,7 +104,18 @@ module Docit
           entry[:content] = content
         end
 
+        entry[:headers] = build_response_headers(builder.headers) if builder.headers.any?
+
         hash[builder.status.to_s] = entry
+      end
+    end
+
+    def build_response_headers(headers)
+      headers.each_with_object({}) do |header, hash|
+        schema = { schema: { type: header[:type] } }
+        schema[:description] = header[:description] if header[:description]
+        schema[:schema][:example] = header[:example] if header.key?(:example)
+        hash[header[:name]] = schema
       end
     end
 
@@ -138,41 +149,48 @@ module Docit
 
     def build_property_schema(prop)
       type = prop[:type].to_s
+      schema = base_property_schema(type, prop)
 
-      if type == "file"
-        schema = { type: "string", format: "binary" }
-        schema[:description] = prop[:description] if prop[:description]
-        schema
-      elsif type == "array"
-        schema = { type: "array" }
-        if prop[:children]
-          schema[:items] = {
-            type: "object",
-            properties: build_properties(prop[:children])
-          }
-        else
-          items_type = prop[:items]&.to_s || "string"
-          schema[:items] = { type: items_type }
-        end
-        schema[:description] = prop[:description] if prop[:description]
-        schema[:example] = prop[:example] if prop[:example]
-        schema
-      elsif type == "object" && prop[:children]
-        schema = {
-          type: "object",
-          properties: build_properties(prop[:children])
-        }
-        schema[:description] = prop[:description] if prop[:description]
-        schema[:example] = prop[:example] if prop[:example]
-        schema
+      # These OpenAPI fields apply to any property shape, so set them once here
+      # rather than in each branch above. nil-checks let `false`/`0` through as
+      # explicit values (e.g. default: false), but skip unset options.
+      schema[:description] = prop[:description] if prop[:description]
+      schema[:example] = prop[:example] if prop[:example]
+      schema[:default] = prop[:default] unless prop[:default].nil?
+      schema[:nullable] = prop[:nullable] unless prop[:nullable].nil?
+      schema[:readOnly] = prop[:read_only] unless prop[:read_only].nil?
+      schema[:writeOnly] = prop[:write_only] unless prop[:write_only].nil?
+      schema
+    end
+
+    def base_property_schema(type, prop)
+      case type
+      when "file"
+        { type: "string", format: "binary" }
+      when "array"
+        { type: "array", items: array_items_schema(prop) }
       else
-        schema = { type: type }
-        schema[:format] = prop[:format].to_s if prop[:format]
-        schema[:enum] = prop[:enum] if prop[:enum]
-        schema[:example] = prop[:example] if prop[:example]
-        schema[:description] = prop[:description] if prop[:description]
-        schema
+        # An object with declared children becomes a nested schema; everything
+        # else (including a childless "object") is a scalar with type/format/enum.
+        if type == "object" && prop[:children]
+          { type: "object", properties: build_properties(prop[:children]) }
+        else
+          scalar_property_schema(type, prop)
+        end
       end
+    end
+
+    def array_items_schema(prop)
+      return { type: "object", properties: build_properties(prop[:children]) } if prop[:children]
+
+      { type: prop[:items]&.to_s || "string" }
+    end
+
+    def scalar_property_schema(type, prop)
+      schema = { type: type }
+      schema[:format] = prop[:format].to_s if prop[:format]
+      schema[:enum] = prop[:enum] if prop[:enum]
+      schema
     end
 
     def build_component_schemas
