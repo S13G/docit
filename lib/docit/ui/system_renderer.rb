@@ -103,7 +103,8 @@ module Docit
               </div>
             </div>
             <div id="toast" class="toast" role="status"></div>
-            <script>#{SystemScript.javascript(graph_url: system_url)}</script>
+            <script>#{SystemScript.config_script(graph_url: system_url)}</script>
+            <script>#{SystemScript.javascript}</script>
           </body>
           </html>
         HTML
