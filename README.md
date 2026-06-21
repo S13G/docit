@@ -352,6 +352,28 @@ doc_for :destroy do
 end
 ```
 
+#### Default (global) security
+
+If most of your API is authenticated, declare the requirement once instead of on every endpoint. In your initializer:
+
+```ruby
+config.auth :api_key, name: "session", location: "query"
+config.default_security :api_key   # applies to every endpoint
+```
+
+Then mark only the **public** endpoints as exceptions with `security :none`:
+
+```ruby
+doc_for :index do
+  summary "List banks"
+  tags "Banks"
+  security :none             # public — opts out of the default
+  response 200, "OK"
+end
+```
+
+An explicit `security :scheme` on an endpoint still overrides the default.
+
 ### Deprecated endpoints
 
 ```ruby

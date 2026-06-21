@@ -1,3 +1,12 @@
+## [0.7.0] - 2026-06-21
+
+### Added
+- `config.default_security :scheme`: apply a security requirement to every endpoint by default, for APIs that are authenticated by default. Emits a top-level OpenAPI `security` so you no longer repeat `security` on each doc block
+- `security :none` in a doc block: opt an endpoint out of the default (emits an empty `security` array, e.g. for public endpoints)
+
+### Changed
+- The System Map's JavaScript and CSS now live in real asset files (`lib/docit/ui/assets/system.js` and `system.css`) read at load time, instead of large Ruby heredocs — same rendered output, easier to maintain
+
 ## [0.6.0] - 2026-06-20
 
 ### Added
