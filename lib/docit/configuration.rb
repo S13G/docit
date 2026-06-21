@@ -18,6 +18,7 @@ module Docit
       @system_graph_excluded_paths = []
       @default_ui = :scalar
       @security_schemes = {}
+      @default_security = nil
       @tags = []
       @servers = []
       @license = nil
@@ -58,6 +59,17 @@ module Docit
 
     def security_schemes
       @security_schemes.dup
+    end
+
+    # Apply one or more security schemes to every endpoint by default. Individual
+    # endpoints opt out with `security :none` in their doc block.
+    def default_security(*schemes)
+      @default_security = schemes.flatten.map(&:to_sym) unless schemes.empty?
+      @default_security
+    end
+
+    def default_security?
+      !@default_security.nil? && !@default_security.empty?
     end
 
     def tag(name, description: nil)

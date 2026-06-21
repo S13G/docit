@@ -259,6 +259,61 @@ RSpec.describe "OpenAPI features" do
     end
   end
 
+  describe "Default (global) security" do
+    before do
+      allow(Docit::RouteInspector).to receive(:routes_for).and_return([])
+      allow(Docit::RouteInspector).to receive(:routes_for)
+        .with("ThingsController", "index").and_return([{ path: "/things", method: "get" }])
+      allow(Docit::RouteInspector).to receive(:routes_for)
+        .with("ThingsController", "ping").and_return([{ path: "/ping", method: "get" }])
+      allow(Docit::RouteInspector).to receive(:routes_for)
+        .with("ThingsController", "show").and_return([{ path: "/things/{id}", method: "get" }])
+    end
+
+    it "applies a top-level security default and lets endpoints opt out with :none" do
+      Docit.configure do |config|
+        config.auth :api_key, name: "session", location: "query"
+        config.default_security :api_key
+      end
+
+      Class.new do
+        include Docit::DSL
+        def self.name = "ThingsController"
+
+        doc_for :index do
+          response 200, "OK"
+        end
+
+        doc_for :ping do
+          security :none
+          response 200, "pong"
+        end
+
+        doc_for :show do
+          security :api_key
+          response 200, "OK"
+        end
+      end
+
+      spec = Docit::SchemaGenerator.generate
+
+      # Top-level default present
+      expect(spec[:security]).to eq([{ "api_key" => [] }])
+      # Endpoint with nothing declared inherits the default (no per-op security key)
+      expect(spec[:paths]["/things"]["get"]).not_to have_key(:security)
+      # `security :none` opts out explicitly with an empty array
+      expect(spec[:paths]["/ping"]["get"][:security]).to eq([])
+      # Explicit scheme still works
+      expect(spec[:paths]["/things/{id}"]["get"][:security]).to eq([{ "api_key" => [] }])
+    end
+
+    it "omits top-level security when no default is configured" do
+      Docit.configure { |config| config.auth :api_key, name: "session", location: "query" }
+      spec = Docit::SchemaGenerator.generate
+      expect(spec).not_to have_key(:security)
+    end
+  end
+
   describe "Tag descriptions" do
     it "adds tags to configuration" do
       Docit.configure do |config|

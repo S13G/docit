@@ -19,6 +19,10 @@ module Docit
         }
       }
 
+      # Top-level security applies to every operation unless an operation
+      # overrides it (a documented scheme, or `security :none` to opt out).
+      spec[:security] = config.default_security.map { |s| { s.to_s => [] } } if config.default_security?
+
       tag_defs = config.tags
       spec[:tags] = tag_defs if tag_defs.any?
 
@@ -78,9 +82,17 @@ module Docit
 
       result[:requestBody] = build_request_body(operation._request_body) if operation._request_body
       result[:deprecated] = true if operation._deprecated
-      result[:security] = operation._security.map { |s| { s.to_s => [] } } if operation._security.any?
+      security = build_operation_security(operation)
+      result[:security] = security unless security.nil?
 
       result
+    end
+
+    def build_operation_security(operation)
+      return nil if operation._security.empty?
+      return [] if operation._security.map(&:to_sym) == [:none]
+
+      operation._security.reject { |s| s.to_sym == :none }.map { |s| { s.to_s => [] } }
     end
 
     def build_responses(response_builders)
